@@ -36,6 +36,7 @@
             <th>Employee ID</th>
             <th>Name</th>
             <th>Department</th>
+            <th>Designation</th>
             <th>In Time</th>
             <th>Out Time</th>
         </tr>
@@ -45,12 +46,14 @@
             <tr>
                 <td>{{ $log->employee_id }}</td>
                 <td>{{ $log->name }}</td>
-{{--                <td>{{ $log->department }}</td>--}}
+                <td>{{ $log->department ?? 'N/A' }}</td>
+                <td>{{ $log->designation ?? 'N/A' }}</td>
                 <td>{{ $log->in_time }}</td>
                 <td>{{ $log->out_time }}</td>
             </tr>
         @endforeach
         </tbody>
+
     </table>
 
 </div>

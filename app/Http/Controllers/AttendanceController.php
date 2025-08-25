@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\DeviceLog;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Illuminate\Support\Carbon;
 use Rats\Zkteco\Lib\ZKTeco;
@@ -11,9 +13,50 @@ use Illuminate\Support\Facades\Hash;
 
 class AttendanceController extends Controller
 {
+//    public function dashboardData()
+//    {
+//        $employeeId = Auth::user()->employee_id;
+//
+//        // Today entry
+//        $todayLog = DB::table('device_logs')
+//            ->where('employee_id', $employeeId)
+//            ->whereDate('timestamp', Carbon::today())
+//            ->orderBy('timestamp')
+//            ->pluck('timestamp');
+//
+//        $todayEntry = $todayLog->count() > 0 ? Carbon::parse($todayLog->first())->format('H:i') : null;
+//
+//        // Last 7 days
+//        $logs = collect();
+//        for ($i = 0; $i < 7; $i++) {
+//            $date = Carbon::today()->subDays($i);
+//            $dailyLogs = DB::table('device_logs')
+//                ->where('employee_id', $employeeId)
+//                ->whereDate('timestamp', $date)
+//                ->orderBy('timestamp')
+//                ->pluck('timestamp');
+//
+//            $in = $dailyLogs->count() > 0 ? Carbon::parse($dailyLogs->first())->format('H:i') : 'Absent';
+//            $out = $dailyLogs->count() > 1 && $dailyLogs->last() !== $dailyLogs->first()
+//                ? Carbon::parse($dailyLogs->last())->format('H:i')
+//                : '';
+//
+//            $logs->push([
+//                'date' => $date->toDateString(),
+//                'in_time' => $in,
+//                'out_time' => $out,
+//            ]);
+//        }
+//
+//        return response()->json([
+//            'todayEntry' => $todayEntry,
+//            'logs' => $logs,
+//            'employeeId' => $employeeId,
+//        ]);
+//    }
     public function syncUsersFromDevices()
     {
-        $deviceIps = ['192.168.10.20'];
+        $deviceIps = ['192.168.10.20', '192.168.10.21', '192.168.10.22'];
         $collected = collect();
 
         foreach ($deviceIps as $ip) {
@@ -54,6 +97,7 @@ class AttendanceController extends Controller
 
         return back()->with('success', 'Users synced from all devices.');
     }
+
     public function syncDeviceLogs()
     {
         $zk = new ZKTeco('192.168.1.201', 4370); // Replace IP
@@ -366,4 +410,48 @@ class AttendanceController extends Controller
             'early_exit' => $earlyExitCount,
         ]);
     }
+
+    public function syncRawLogs()
+    {
+        $deviceIps = ['192.168.10.20', '192.168.10.21', '192.168.10.22'];
+        $allLogs = collect();
+
+        foreach ($deviceIps as $ip) {
+            $zk = new \Rats\Zkteco\Lib\ZKTeco($ip);
+
+            if (! $zk->connect()) {
+                continue; // Skip unreachable device
+            }
+
+            $zk->disableDevice();
+            $logs = $zk->getAttendance(); // Fetch logs
+
+            // Store logs in memory first
+            foreach ($logs as $log) {
+                $allLogs->push([
+                    'employee_id' => $log['id'],
+                    'timestamp'   => $log['timestamp'],
+                    'uid'         => $log['uid'],
+                    'type'        => $log['type'],
+                    'created_at'  => now(),
+                    'updated_at'  => now(),
+                ]);
+            }
+
+//            $zk->clearAttendance(); // 🔥 DELETE logs from device
+            $zk->enableDevice();
+            $zk->disconnect();
+        }
+
+        // Store logs in the database
+        foreach ($allLogs as $log) {
+            DeviceLog::updateOrCreate(
+                ['employee_id' => $log['employee_id'], 'timestamp' => $log['timestamp']],
+                $log
+            );
+        }
+
+        return back()->with('success', 'Logs synced and cleared from devices.');
+    }
+
 }

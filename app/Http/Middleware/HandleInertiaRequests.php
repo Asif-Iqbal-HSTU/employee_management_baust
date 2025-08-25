@@ -39,6 +39,12 @@ class HandleInertiaRequests extends Middleware
     {
         [$message, $author] = str(Inspiring::quotes()->random())->explode('-');
 
+        $user = $request->user();
+        if ($user) {
+            // Eager-load relations so they're available in Inertia props
+            $user->load(['assignment', 'headedDepartment']);
+        }
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),

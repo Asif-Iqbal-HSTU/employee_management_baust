@@ -57,4 +57,10 @@ class User extends Authenticatable
         return $this->hasOne(UserAssignment::class, 'employee_id', 'employee_id');
     }
 
+    public function headedDepartment()
+    {
+        return $this->hasOne(DeptHead::class, 'employee_id', 'employee_id');
+    }
+
+
 }
