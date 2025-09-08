@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use App\Http\Controllers\DeptHeadAttendanceController;
 
+use App\Http\Controllers\AttendanceController;
+
 Route::get('/', function () {
     return Inertia::render('welcome');
 })->name('home');
@@ -393,6 +395,12 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/dept-head/employee/{employeeId}/monthly', [DeptHeadAttendanceController::class, 'employeeMonthly'])
         ->name('depthead.employee.monthly');
 
+    Route::get('/departments/{id}/attendance', [AttendanceController::class, 'show'])
+        ->name('departments.attendance');
+
+    Route::get('/dept-head/employee/{employeeId}/monthly', [AttendanceController::class, 'deptEmployee'])
+        ->name('dept.employee.monthly');
+
 });
 
 
@@ -407,7 +415,6 @@ Route::get('/socket-check', function () {
     return function_exists('socket_create') ? 'Sockets Enabled' : 'Sockets Not Enabled';
 });
 
-use App\Http\Controllers\AttendanceController;
 
 Route::get('/device-attendance', [AttendanceController::class, 'deviceLogs'])->name('attendance.device');
 
@@ -425,6 +432,9 @@ use App\Http\Controllers\UserAssignmentController;
 
 Route::get('/user-assignments', [UserAssignmentController::class, 'index'])->name('user-assignments.index');
 Route::post('/user-assignments', [UserAssignmentController::class, 'store'])->name('user-assignments.store');
+
+
+Route::get('/departments', [AttendanceController::class, 'departments'])->name('departments');
 
 Route::get('/send-email', [\App\Http\Controllers\EmailController::class, 'sendEmail'])->name('email.send');
 Route::get('/logs/last-sync-time', [\App\Http\Controllers\DeviceLogController::class, 'getLastSyncTime'])->name('logs.last_sync_time');

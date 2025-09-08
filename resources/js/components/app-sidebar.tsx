@@ -57,6 +57,10 @@ export function AppSidebar() {
             title: 'Sync Logs',
             href: '/sync-logs',
             icon: Logs,
+        },{
+            title: 'Departments',
+            href: '/departments',
+            icon: Logs,
         });
     }
     return (

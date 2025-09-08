@@ -147,32 +147,31 @@ export default function Index({ users, assignments }) {
                 {/* Assigned List */}
                 <div className="rounded-2xl border bg-card p-6 shadow-sm">
                     <h2 className="mb-4 text-lg font-semibold">Assigned Times</h2>
-                    <table className="w-full text-sm">
+                    <table className="w-full text-sm border-collapse border">
                         <thead>
                         <tr className="text-left">
-                            <th className="py-2">Name</th>
-                            <th className="py-2">Entry</th>
-                            <th className="py-2">Exit</th>
-                            <th className="py-2">Days</th>
-                            <th className="py-2">Repeat</th>
+                            <th className="py-2 border-r">Name</th>
+                            <th className="py-2 border-r">Entry</th>
+                            <th className="py-2 border-r">Exit</th>
+                            <th className="py-2 border-r">Days</th>
+                            <th className="py-2 border-r">Repeat</th>
                             <th className="py-2">Actions</th>
                         </tr>
                         </thead>
                         <tbody>
                         {assignments.map((a) => (
                             <tr key={a.id} className="border-t">
-                                <td className="py-2">{a.user.name}</td>
-                                <td className="py-2">{a.allowed_entry}</td>
-                                <td className="py-2">{a.allowed_exit}</td>
-                                <td className="py-2">
+                                <td className="py-2 border-r">{a.user.name}</td>
+                                <td className="py-2 border-r">{a.allowed_entry}</td>
+                                <td className="py-2 border-r">{a.allowed_exit}</td>
+                                <td className="py-2 border-r">
                                     {Array.isArray(a.weekdays)
-                                        ? a.weekdays.map((w) =>
-                                            weekdaysList.find((d) => d.code === w)?.label
-                                        ).join(", ")
+                                        ? a.weekdays
+                                            .map((w) => weekdaysList.find((d) => d.code === w)?.label)
+                                            .join(", ")
                                         : ""}
                                 </td>
-
-                                <td className="py-2">{a.repeat_weekly ? "Yes" : "No"}</td>
+                                <td className="py-2 border-r">{a.repeat_weekly ? "Yes" : "No"}</td>
                                 <td className="py-2">
                                     <form
                                         onSubmit={(e) => {
@@ -190,6 +189,7 @@ export default function Index({ users, assignments }) {
                         </tbody>
                     </table>
                 </div>
+
             </div>
         </AppLayout>
     );
