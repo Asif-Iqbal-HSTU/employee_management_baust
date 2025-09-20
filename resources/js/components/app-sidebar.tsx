@@ -57,7 +57,11 @@ export function AppSidebar() {
             title: 'Sync Logs',
             href: '/sync-logs',
             icon: Logs,
-        },{
+        });
+    }
+
+    if (authUser?.employee_id==25052 || authUser?.employee_id==15012 || authUser?.employee_id==25040) {
+        mainNavItems.push({
             title: 'Departments',
             href: '/departments',
             icon: Logs,

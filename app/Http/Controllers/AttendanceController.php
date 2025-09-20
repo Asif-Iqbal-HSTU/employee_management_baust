@@ -458,14 +458,80 @@ class AttendanceController extends Controller
     }
 
     //IMPORTANT SECTION
-    public function departments()
+/*    public function departments()
     {
         $departments = Department::all();
 
         return inertia('Departments/deptList', [
             'departments' => $departments,
         ]);
+    }*/
+
+    public function departments()
+    {
+        $departments = Department::all();
+
+        // last 7 working days excluding Friday (5) & Saturday (6)
+        $dates = collect();
+        $today = now();
+        $startDate = now()->subDays(14); // to ensure we get 7 working days even with weekends
+
+        for ($date = $startDate->copy(); $date <= $today; $date->addDay()) {
+            $dayOfWeek = $date->dayOfWeekIso;
+            if (!in_array($dayOfWeek, [5, 6])) {
+                $dates->push($date->toDateString());
+            }
+        }
+        $dates = $dates->take(-7); // only last 7 working days
+
+        $deptSummaries = [];
+
+        foreach ($departments as $dept) {
+            $summary = [];
+
+            foreach ($dates as $date) {
+                $employees = DB::table('users')
+                    ->join('user_assignments', 'users.employee_id', '=', 'user_assignments.employee_id')
+                    ->where('user_assignments.department_id', $dept->id)
+                    ->pluck('users.employee_id');
+
+                $absent = 0;
+                $late = 0;
+
+                foreach ($employees as $empId) {
+                    $log = DB::table('device_logs')
+                        ->where('employee_id', $empId)
+                        ->whereDate('timestamp', $date)
+                        ->orderBy('timestamp')
+                        ->pluck('timestamp');
+
+                    if ($log->isEmpty()) {
+                        $absent++;
+                    } else {
+                        $inTime = \Carbon\Carbon::parse($log->first())->format('H:i:s');
+                        if ($inTime > '08:00:00') {
+                            $late++;
+                        }
+                    }
+                }
+
+                $summary[] = [
+                    'date'   => $date,
+                    'absent' => $absent,
+                    'late'   => $late,
+                ];
+            }
+
+            $deptSummaries[$dept->id] = $summary;
+        }
+
+        return inertia('Departments/deptList', [
+            'departments' => $departments,
+            'attendance' => $deptSummaries,
+        ]);
     }
+
+
 
     public function show(Request $request, $departmentId)
     {

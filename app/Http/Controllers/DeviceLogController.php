@@ -10,6 +10,7 @@ class DeviceLogController extends Controller
 {
     public function syncRawLogs()
     {
+//        $deviceIps = ['192.168.10.22'];
         $deviceIps = ['192.168.10.20','192.168.10.21','192.168.10.22'];
         $batchSize = 1000;
 
