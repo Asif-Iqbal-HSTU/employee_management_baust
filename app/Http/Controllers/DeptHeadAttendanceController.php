@@ -14,7 +14,7 @@ class DeptHeadAttendanceController extends Controller
         $user = Auth::user();
 
         // ✅ get dept id from dept_heads table
-        $deptHead = DB::table('dept_heads')
+ /*       $deptHead = DB::table('dept_heads')
             ->where('employee_id', $user->employee_id)
             ->first();
 
@@ -22,7 +22,22 @@ class DeptHeadAttendanceController extends Controller
             abort(403, 'You are not a department head');
         }
 
-        $departmentId = $deptHead->department_id;
+//        $departmentId = $deptHead->department_id;
+        $departmentId   = $deptHead->department_id;
+        $departmentName = $deptHead->department->dept_name;*/
+
+        $deptHead = DB::table('dept_heads')
+            ->join('departments', 'dept_heads.department_id', '=', 'departments.id')
+            ->where('dept_heads.employee_id', $user->employee_id)
+            ->select('dept_heads.*', 'departments.dept_name')
+            ->first();
+
+        if (!$deptHead) {
+            abort(403, 'You are not a department head');
+        }
+
+        $departmentId   = $deptHead->department_id;
+        $departmentName = $deptHead->dept_name;
 
         $date = $request->input('date', Carbon::today()->toDateString());
 
@@ -64,8 +79,12 @@ class DeptHeadAttendanceController extends Controller
         }
 
         return inertia('DeptHead/Attendance', [
-            'date'    => $date,
-            'report'  => $report,
+            'date'       => $date,
+            'department' => [
+                'id'   => $departmentId,
+                'name' => $departmentName,
+            ],
+            'report'     => $report,
         ]);
     }
 

@@ -536,7 +536,7 @@ class AttendanceController extends Controller
     public function show(Request $request, $departmentId)
     {
         $user = Auth::user();
-
+        $department = Department::findOrFail($departmentId);
         // ✅ get dept id from dept_heads table
         /*$deptHead = DB::table('dept_heads')
             ->where('employee_id', $user->employee_id)
@@ -590,6 +590,10 @@ class AttendanceController extends Controller
         return inertia('Departments/Attendance', [
             'date'    => $date,
             'report'  => $report,
+            'department' => [
+                'id'   => $department->id,
+                'name' => $department->dept_name,
+            ],
         ]);
     }
 

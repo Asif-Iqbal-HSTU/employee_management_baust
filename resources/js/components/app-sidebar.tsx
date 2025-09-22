@@ -38,7 +38,7 @@ export function AppSidebar() {
 // if dept head
     if (authUser?.headed_department) {
         mainNavItems.push({
-            title: 'Department Attendance',
+            title: 'My Department Attendance',
             href: '/dept-head/attendance',
             icon: CalendarClock,
         },{
@@ -62,7 +62,7 @@ export function AppSidebar() {
 
     if (authUser?.employee_id==25052 || authUser?.employee_id==15012 || authUser?.employee_id==25040) {
         mainNavItems.push({
-            title: 'Departments',
+            title: 'All Departments',
             href: '/departments',
             icon: Logs,
         });

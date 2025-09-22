@@ -17,6 +17,10 @@ type ReportRow = {
 type Props = {
     date: string;
     report: ReportRow[];
+    department: {
+        id: number;
+        name: string;
+    };
 };
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -40,7 +44,7 @@ function fmtHHMM(totalMin: number): string {
     return `${hh}:${mm}`;
 }
 
-export default function Attendance({ date, report }: Props) {
+export default function Attendance({ date, report, department }: Props) {
     const [modalOpen, setModalOpen] = useState(false);
     const [employeeData, setEmployeeData] = useState<any>(null);
     const [selectedEmp, setSelectedEmp] = useState<ReportRow | null>(null);
@@ -185,7 +189,10 @@ export default function Attendance({ date, report }: Props) {
             <Head title="Dashboard" />
             <div className="p-6">
                 <h1 className="text-2xl font-bold mb-6">
-                    Department Attendance - {date}
+                    {department.name}
+                </h1>
+                <h1 className="text-xl font-bold mb-6">
+                    Date: - {date}
                 </h1>
 
                 {/* Summary Section */}
