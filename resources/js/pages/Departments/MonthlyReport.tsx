@@ -46,6 +46,7 @@ export default function MonthlyReport({ department, report, monthName }: any) {
                 <table ref={tableRef} className="min-w-full border">
                     <thead className="bg-gray-100">
                     <tr>
+                        {/*<th className="px-4 py-2 border">id</th>*/}
                         <th className="px-4 py-2 border">Name</th>
                         <th className="px-4 py-2 border">Designation</th>
                         <th className="px-4 py-2 border">Workdays</th>
@@ -58,6 +59,7 @@ export default function MonthlyReport({ department, report, monthName }: any) {
                     <tbody>
                     {report.map((row: any, idx: number) => (
                         <tr key={idx}>
+                            {/*<td className="px-4 py-2 border">{row.id}</td>*/}
                             <td className="px-4 py-2 border">{row.name}</td>
                             <td className="px-4 py-2 border">{row.designation}</td>
                             <td className="px-4 py-2 border">{row.total_days}</td>
