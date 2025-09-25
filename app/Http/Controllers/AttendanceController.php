@@ -531,6 +531,16 @@ class AttendanceController extends Controller
         ]);
     }
 
+    public function departmentList()
+    {
+        $departments = Department::all();
+
+
+        return inertia('Departments/deptListForMonthlyReport', [
+            'departments' => $departments,
+        ]);
+    }
+
 
 
     public function show(Request $request, $departmentId)
@@ -706,5 +716,183 @@ class AttendanceController extends Controller
             'year'         => $year,
         ]);
     }
+
+    public function monthlyReport0($deptId)
+    {
+        // Auto detect current month
+        $today = now();
+        $startDate = $today->copy()->startOfMonth();
+        $endDate   = $today->copy(); // till today
+
+        // Collect working days (excluding Fri & Sat)
+        $dates = collect();
+        for ($date = $startDate->copy(); $date <= $endDate; $date->addDay()) {
+            $dayOfWeek = $date->dayOfWeekIso;
+            if (!in_array($dayOfWeek, [5, 6])) {
+                $dates->push($date->toDateString());
+            }
+        }
+
+        // Department info
+        $department = DB::table('departments')->find($deptId);
+
+        $employees = DB::table('users')
+            ->join('user_assignments', 'users.employee_id', '=', 'user_assignments.employee_id')
+            ->leftJoin('designations', 'designations.id', '=', 'user_assignments.designation_id')
+            ->where('user_assignments.department_id', $deptId)
+            ->select('users.employee_id', 'users.name', 'designations.designation_name as designation')
+            ->get();
+
+        $report = [];
+
+        foreach ($employees as $employee) {
+            $present = 0;
+            $late = 0;
+            $earlyLeave = 0;
+
+            foreach ($dates as $date) {
+                $logs = DB::table('device_logs')
+                    ->where('employee_id', $employee->employee_id)
+                    ->whereDate('timestamp', $date)
+                    ->orderBy('timestamp')
+                    ->pluck('timestamp');
+
+                if ($logs->isNotEmpty()) {
+                    $present++;
+
+                    $firstLog = Carbon::parse($logs->first())->format('H:i:s');
+                    $lastLog  = Carbon::parse($logs->last())->format('H:i:s');
+
+                    if ($firstLog > '08:00:00') {
+                        $late++;
+                    }
+
+                    if ($lastLog < '14:30:00') {
+                        $earlyLeave++;
+                    }
+                }
+            }
+
+            $totalWorkdays = $dates->count();
+            $absent = $totalWorkdays - $present;
+
+            $report[] = [
+                'name'        => $employee->name,
+                'id'        => $employee->employee_id,
+                'designation' => $employee->designation,
+                'total_days'  => $totalWorkdays,
+                'present'     => $present,
+                'absent'      => $absent,
+                'late'        => $late,
+                'early_leave' => $earlyLeave,
+            ];
+        }
+
+        return inertia('Departments/MonthlyReport', [
+            'report'      => $report,
+            'department'  => $department,
+            'monthName'   => $today->format('F Y'), // e.g. "September 2025"
+        ]);
+    }
+
+    public function monthlyReport($deptId)
+    {
+        $today = now();
+        $startDate = $today->copy()->startOfMonth();
+        $endDate   = $today->copy(); // till today
+
+        // Collect working days (Mon–Thu, Sun) only
+        $dates = collect();
+        for ($date = $startDate->copy(); $date <= $endDate; $date->addDay()) {
+            $dayOfWeek = $date->dayOfWeekIso; // 1=Mon … 7=Sun
+            if (!in_array($dayOfWeek, [5, 6])) { // Exclude Fri(5) & Sat(6)
+                $dates->push($date->toDateString());
+            }
+        }
+
+        $department = DB::table('departments')->find($deptId);
+
+        $employees = DB::table('users')
+            ->join('user_assignments', 'users.employee_id', '=', 'user_assignments.employee_id')
+            ->leftJoin('designations', 'designations.id', '=', 'user_assignments.designation_id')
+            ->where('user_assignments.department_id', $deptId)
+            ->select('users.employee_id', 'users.name', 'designations.designation_name as designation')
+            ->get();
+
+        $report = [];
+
+        foreach ($employees as $employee) {
+            $present = 0;
+            $late = 0;
+            $earlyLeave = 0;
+            $overtimeDays = 0;
+            $totalOvertimeMinutes = 0;
+
+            foreach ($dates as $date) {
+                $logs = DB::table('device_logs')
+                    ->where('employee_id', $employee->employee_id)
+                    ->whereDate('timestamp', $date)
+                    ->orderBy('timestamp')
+                    ->pluck('timestamp');
+
+                if ($logs->isNotEmpty()) {
+                    $present++;
+
+                    $firstLog = Carbon::parse($logs->first());
+                    $lastLog  = Carbon::parse($logs->last());
+
+                    // Late if after 08:00
+                    if ($firstLog->gt(Carbon::parse($date . ' 08:02:00'))) {
+                        $late++;
+                    }
+
+                    // Early leave if before 14:30
+                    if ($lastLog->lt(Carbon::parse($date . ' 14:30:00'))) {
+                        $earlyLeave++;
+                    }
+
+                    // Work duration
+                    $workedMinutes = $lastLog->diffInMinutes($firstLog);
+                    $requiredMinutes = 6 * 60 + 30; // 390
+
+                    if ($workedMinutes > $requiredMinutes) {
+                        $overtimeDays++;
+                        $totalOvertimeMinutes += ($workedMinutes - $requiredMinutes);
+                    }
+                }
+            }
+
+            $totalWorkdays = $dates->count();
+            $absent = $totalWorkdays - $present;
+
+/*            $overtimeHours = round($totalOvertimeMinutes / 60, 2);
+            $overtimeEquivalentDays = round($overtimeHours / 6.5, 2);*/
+            $overtimeHours = $totalOvertimeMinutes / 60;
+            $overtimeEquivalentDays = $overtimeHours / 6.5;
+
+            $report[] = [
+                'id'                  => $employee->employee_id,
+                'name'                => $employee->name,
+                'designation'         => $employee->designation,
+                'total_days'          => $totalWorkdays,
+                'present'             => $present,
+                'absent'              => $absent,
+                'late'                => $late,
+                'early_leave'         => $earlyLeave,
+                'overtime_days'       => $overtimeDays,
+                'overtime_hours'      => $overtimeHours,
+                'overtime_equiv_days' => $overtimeEquivalentDays,
+            ];
+        }
+
+        return inertia('Departments/MonthlyReport', [
+            'report'      => $report,
+            'department'  => $department,
+            'monthName'   => $today->format('F Y'),
+        ]);
+    }
+
+
+
 
 }

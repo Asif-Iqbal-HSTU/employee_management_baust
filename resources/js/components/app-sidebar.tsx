@@ -65,6 +65,10 @@ export function AppSidebar() {
             title: 'All Departments',
             href: '/departments',
             icon: Logs,
+        },{
+            title: 'Monthly Report',
+            href: '/departmentList',
+            icon: Logs,
         });
     }
     return (

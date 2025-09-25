@@ -435,6 +435,8 @@ Route::post('/user-assignments', [UserAssignmentController::class, 'store'])->na
 
 
 Route::get('/departments', [AttendanceController::class, 'departments'])->name('departments');
+Route::get('/departmentList', [AttendanceController::class, 'departmentList'])->name('departmentList');
+Route::get('/departments/{id}/monthly-report', [AttendanceController::class, 'monthlyReport'])->name('monthlyReport');
 
 Route::get('/send-email', [\App\Http\Controllers\EmailController::class, 'sendEmail'])->name('email.send');
 Route::get('/logs/last-sync-time', [\App\Http\Controllers\DeviceLogController::class, 'getLastSyncTime'])->name('logs.last_sync_time');
