@@ -799,7 +799,7 @@ class AttendanceController extends Controller
     {
         $today = now();
         $startDate = $today->copy()->startOfMonth();
-        $endDate   = $today->copy(); // till today
+        $endDate = $today->copy()->subDay();
 
         // Collect working days (Mon–Thu, Sun) only
         $dates = collect();
