@@ -842,7 +842,7 @@ class AttendanceController extends Controller
                     $lastLog  = Carbon::parse($logs->last());
 
                     // Late if after 08:00
-                    if ($firstLog->gt(Carbon::parse($date . ' 08:02:00'))) {
+                    if ($firstLog->gt(Carbon::parse($date . ' 08:00:00'))) {
                         $late++;
                     }
 
