@@ -68,7 +68,7 @@ export function AppSidebar() {
         });
     }
 
-    if (authUser?.employee_id==23033 || authUser?.employee_id==25052 || authUser?.employee_id==25040) {
+    if (authUser?.employee_id==23033 || authUser?.employee_id==25052 || authUser?.employee_id==25040 || authUser?.employee_id==15012) {
         mainNavItems.push({
             title: 'Monthly Report',
             href: '/departmentList',
