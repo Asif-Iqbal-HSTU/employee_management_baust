@@ -20,26 +20,12 @@ class DatabaseSeeder extends Seeder
 
         $users = [
             [
-                'name' => 'Dhiraj Chandra Barman',
-                'employee_id' => '24079',
-                'email' => 'dhiraj@example.com',
-                'password' => Hash::make('12341234'),
+                'name' => 'Dr. Md Nakib Hayat Chowdhury',
+                'employee_id' => '15025',
+                'email' => 'nakib@baust.edu.bd',
+                'password' => Hash::make('15025'),
                 'remember_token' => Str::random(10),
-            ],
-            [
-                'name' => 'Md. Alamgir Hoque',
-                'employee_id' => '25030',
-                'email' => 'alamgir@example.com',
-                'password' => Hash::make('12341234'),
-                'remember_token' => Str::random(10),
-            ],
-            [
-                'name' => 'Md. Miraz Hossain',
-                'employee_id' => '25028',
-                'email' => 'miraz@example.com',
-                'password' => Hash::make('12341234'),
-                'remember_token' => Str::random(10),
-            ],
+            ]
         ];
 
         DB::table('users')->insert($users);

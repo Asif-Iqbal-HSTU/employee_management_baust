@@ -404,6 +404,9 @@ Route::middleware(['auth'])->group(function () {
 });
 
 
+Route::get('/dept-head/employee/{employeeId}/monthly', [DeptHeadAttendanceController::class, 'employeeMonthly'])
+    ->name('depthead.employee.mon');
+
 Route::get('/zk/logs', [App\Http\Controllers\ZKTecoController::class, 'getLogs']);
 Route::get('/zk/users', [App\Http\Controllers\ZKTecoController::class, 'getUsers']);
 Route::get('/allEmployeeAttendance', [App\Http\Controllers\AttendanceController::class, 'employeeList'])->name('employeeList');;
@@ -424,6 +427,8 @@ Route::post('/attendance/sync', [AttendanceController::class, 'syncDeviceLogs'])
 
 
 Route::post('/users/sync', [AttendanceController::class, 'syncUsersFromDevices'])->name('users.sync');
+Route::get('/users/sync', [AttendanceController::class, 'syncUsersFromDevices'])->name('users.sync');
+
 
 Route::post('/logs/sync', [\App\Http\Controllers\DeviceLogController::class, 'syncRawLogs'])->name('logs.sync');
 Route::get('/attendance/report', [\App\Http\Controllers\DeviceLogController::class, 'generateReport'])->name('attendance.report');
@@ -437,6 +442,8 @@ Route::post('/user-assignments', [UserAssignmentController::class, 'store'])->na
 Route::get('/departments', [AttendanceController::class, 'departments'])->name('departments');
 Route::get('/departmentList', [AttendanceController::class, 'departmentList'])->name('departmentList');
 Route::get('/departments/{id}/monthly-report', [AttendanceController::class, 'monthlyReport'])->name('monthlyReport');
+
+Route::get('/late-summary-report', [AttendanceController::class, 'showLateSummaryReport'])->name('late.summary.report');
 
 Route::get('/send-email', [\App\Http\Controllers\EmailController::class, 'sendEmail'])->name('email.send');
 Route::get('/logs/last-sync-time', [\App\Http\Controllers\DeviceLogController::class, 'getLastSyncTime'])->name('logs.last_sync_time');

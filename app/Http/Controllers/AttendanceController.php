@@ -153,6 +153,91 @@ class AttendanceController extends Controller
         return view('attendance.report', compact('logs', 'date'));
     }
 
+    public function showLateSummaryReport()
+    {
+        $summaryTable = [];
+        $lateDetails = [];
+        $absentDetails = [];
+        $date = now()->toDateString();
+
+        // Fetch department-wise employees
+        $departments = DB::table('departments')->get();
+
+        foreach ($departments as $dept) {
+            $deptId = $dept->id;
+            $departmentName = $dept->dept_name;
+
+            $employees = DB::table('users')
+                ->join('user_assignments', 'users.employee_id', '=', 'user_assignments.employee_id')
+                ->leftJoin('designations', 'designations.id', '=', 'user_assignments.designation_id')
+                ->where('user_assignments.department_id', $deptId)
+                ->select('users.employee_id', 'users.name', 'designations.designation_name as designation')
+                ->get();
+
+            $totalCount = $employees->count();
+            $lateCount = 0;
+            $lateEmployees = [];
+            $absentEmployees = [];
+
+            foreach ($employees as $employee) {
+                $firstLog = DB::table('device_logs')
+                    ->where('employee_id', $employee->employee_id)
+                    ->whereDate('timestamp', $date)
+                    ->orderBy('timestamp')
+                    ->first();
+
+                if ($firstLog) {
+                    $inTime = Carbon::parse($firstLog->timestamp)->format('H:i:s');
+                    if ($inTime > '08:00:00') {
+                        $lateCount++;
+                        // keep employee object + in_time
+                        $empWithInTime = (object) array_merge((array) $employee, ['in_time' => $inTime]);
+                        $lateEmployees[] = $empWithInTime;
+                    }
+                } else {
+                    $absentEmployees[] = $employee;
+                }
+            }
+
+            $summaryTable[] = [
+                'department' => $departmentName,
+                'total' => $totalCount,
+                'late' => $lateCount,
+                'absent' => count($absentEmployees),
+            ];
+
+            if (!empty($lateEmployees)) {
+                // transform to arrays for safe JSON serialization
+                $lateDetails[$departmentName] = array_map(function($e) {
+                    return [
+                        'employee_id' => $e->employee_id,
+                        'name' => $e->name,
+                        'designation' => $e->designation,
+                        'in_time' => $e->in_time ?? null,
+                    ];
+                }, $lateEmployees);
+            }
+
+            if (!empty($absentEmployees)) {
+                $absentDetails[$departmentName] = array_map(function($e) {
+                    return [
+                        'employee_id' => $e->employee_id,
+                        'name' => $e->name,
+                        'designation' => $e->designation,
+                    ];
+                }, $absentEmployees);
+            }
+        }
+
+        // Return data as Inertia props to the TSX page
+        return Inertia::render('LateSummaryReport', [
+            'summaryTable' => $summaryTable,
+            'lateDetails' => $lateDetails,
+            'absentDetails' => $absentDetails,
+            'date' => $date,
+        ]);
+    }
+
 
     /*public function deviceLogs()
     {
@@ -486,7 +571,7 @@ class AttendanceController extends Controller
 
         $deptSummaries = [];
 
-        foreach ($departments as $dept) {
+        /*foreach ($departments as $dept) {
             $summary = [];
 
             foreach ($dates as $date) {
@@ -523,7 +608,80 @@ class AttendanceController extends Controller
             }
 
             $deptSummaries[$dept->id] = $summary;
+        }*/
+
+        foreach ($departments as $dept) {
+            $summary = [];
+
+            // === Today's summary ===
+            $todayDate = now()->toDateString();
+            $employees = DB::table('users')
+                ->join('user_assignments', 'users.employee_id', '=', 'user_assignments.employee_id')
+                ->where('user_assignments.department_id', $dept->id)
+                ->pluck('users.employee_id');
+
+            $totalEmp = $employees->count();
+            $absent = 0;
+            $late = 0;
+
+            foreach ($employees as $empId) {
+                $log = DB::table('device_logs')
+                    ->where('employee_id', $empId)
+                    ->whereDate('timestamp', $todayDate)
+                    ->orderBy('timestamp')
+                    ->pluck('timestamp');
+
+                if ($log->isEmpty()) {
+                    $absent++;
+                } else {
+                    $inTime = \Carbon\Carbon::parse($log->first())->format('H:i:s');
+                    if ($inTime > '08:00:00') {
+                        $late++;
+                    }
+                }
+            }
+
+            $todaySummary = [
+                'total' => $totalEmp,
+                'late' => $late,
+                'absent' => $absent,
+            ];
+
+            // === Last 7 working days chart data ===
+            foreach ($dates as $date) {
+                $absentCount = 0;
+                $lateCount = 0;
+
+                foreach ($employees as $empId) {
+                    $log = DB::table('device_logs')
+                        ->where('employee_id', $empId)
+                        ->whereDate('timestamp', $date)
+                        ->orderBy('timestamp')
+                        ->pluck('timestamp');
+
+                    if ($log->isEmpty()) {
+                        $absentCount++;
+                    } else {
+                        $inTime = \Carbon\Carbon::parse($log->first())->format('H:i:s');
+                        if ($inTime > '08:00:00') {
+                            $lateCount++;
+                        }
+                    }
+                }
+
+                $summary[] = [
+                    'date'   => $date,
+                    'absent' => $absentCount,
+                    'late'   => $lateCount,
+                ];
+            }
+
+            $deptSummaries[$dept->id] = [
+                'today' => $todaySummary,
+                'graph' => $summary,
+            ];
         }
+
 
         return inertia('Departments/deptList', [
             'departments' => $departments,

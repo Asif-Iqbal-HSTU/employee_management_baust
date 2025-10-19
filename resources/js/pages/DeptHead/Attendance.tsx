@@ -1,16 +1,16 @@
-import { useMemo, useState } from "react";
-import axios from "axios";
-import AttendanceCalendar from "@/components/AttendanceCalendar";
-import { Head } from "@inertiajs/react";
-import AppLayout from "@/layouts/app-layout";
-import type { BreadcrumbItem } from "@/types";
-import { LoaderCircle } from "lucide-react";
+import AttendanceCalendar from '@/components/AttendanceCalendar';
+import AppLayout from '@/layouts/app-layout';
+import type { BreadcrumbItem } from '@/types';
+import { Head, router } from '@inertiajs/react';
+import axios from 'axios';
+import { LoaderCircle } from 'lucide-react';
+import { useMemo, useState } from 'react';
 
 type ReportRow = {
     employee_id: number | string;
     name: string;
     designation: string | null;
-    in_time: string;  // "HH:mm:ss" or "Absent"
+    in_time: string; // "HH:mm:ss" or "Absent"
     out_time: string; // "HH:mm:ss" or ""
 };
 
@@ -23,57 +23,74 @@ type Props = {
     };
 };
 
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: "Department Attendance", href: "/dept-head/attendance" },
-];
+const breadcrumbs: BreadcrumbItem[] = [{ title: 'Department Attendance', href: '/dept-head/attendance' }];
 
-const OFFICE_START = "08:00:00"; // keep in sync with backend rule
+const OFFICE_START = '08:00:00'; // keep in sync with backend rule
 
 function toMinutes(t?: string | null): number | null {
     if (!t) return null;
-    if (t === "Absent") return null;
-    const parts = t.split(":").map(Number);
+    if (t === 'Absent') return null;
+    const parts = t.split(':').map(Number);
     if (parts.some((n) => Number.isNaN(n))) return null;
     const [h, m, s = 0] = parts;
     return h * 60 + m + Math.floor(s / 60);
 }
 
 function fmtHHMM(totalMin: number): string {
-    const hh = String(Math.floor(totalMin / 60)).padStart(2, "0");
-    const mm = String(totalMin % 60).padStart(2, "0");
+    const hh = String(Math.floor(totalMin / 60)).padStart(2, '0');
+    const mm = String(totalMin % 60).padStart(2, '0');
     return `${hh}:${mm}`;
 }
 
-export default function Attendance({ date, report, department  }: Props) {
+export default function Attendance({ date, report, department }: Props) {
     const [modalOpen, setModalOpen] = useState(false);
     const [employeeData, setEmployeeData] = useState<any>(null);
     const [selectedEmp, setSelectedEmp] = useState<ReportRow | null>(null);
     const [loading, setLoading] = useState(false);
-    const [searchTerm, setSearchTerm] = useState("");
+    const [searchTerm, setSearchTerm] = useState('');
 
     const openEmployeeModal = async (emp: ReportRow) => {
         try {
             setLoading(true);
-            const res = await axios.get(route("depthead.employee.monthly", emp.employee_id));
+            const res = await axios.get(route('depthead.employee.mon', { employeeId: emp.employee_id }));
+
             setEmployeeData(res.data);
+
             setSelectedEmp(emp);
             setModalOpen(true);
         } catch (e) {
-            console.error("Error fetching employee monthly data", e);
+            console.error('Error fetching employee monthly data', e);
         } finally {
             setLoading(false);
         }
     };
 
+    /*const openEmployeeModal = (emp: ReportRow) => {
+        setLoading(true);
+
+        router.get(
+            route('depthead.employee.mon', { employeeId: emp.employee_id }),
+            {},
+            {
+                preserveScroll: true,
+                preserveState: true,
+                onSuccess: (page) => {
+                    // `page.props` holds what Laravel returned via Inertia
+                    setEmployeeData(page.props.calendarLogs);
+                    setSelectedEmp(emp);
+                    setModalOpen(true);
+                    setLoading(false);
+                },
+                onError: () => setLoading(false),
+            },
+        );
+    };*/
+
     // Search filter (ID or Name)
     const filteredReport = useMemo(() => {
         const q = searchTerm.toLowerCase().trim();
         if (!q) return report;
-        return report.filter(
-            (emp) =>
-                emp.employee_id.toString().includes(q) ||
-                emp.name.toLowerCase().includes(q)
-        );
+        return report.filter((emp) => emp.employee_id.toString().includes(q) || emp.name.toLowerCase().includes(q));
     }, [report, searchTerm]);
 
     //const officeStartMinutes = useMemo(() => toMinutes(OFFICE_START) ?? 0, []);
@@ -129,12 +146,12 @@ export default function Attendance({ date, report, department  }: Props) {
 
     // parse HH:MM:SS into seconds
     const parseTime = (time?: string | null): number | null => {
-        if (!time || time === "Absent") return null;
-        const [h, m, s = "0"] = time.split(":");
+        if (!time || time === 'Absent') return null;
+        const [h, m, s = '0'] = time.split(':');
         return Number(h) * 3600 + Number(m) * 60 + Number(s);
     };
 
-// compute late employees
+    // compute late employees
     const lateEmployees = report
         .map((emp) => {
             const officeStart = emp.allowed_entry || OFFICE_START; // fallback if no allowance
@@ -147,14 +164,13 @@ export default function Attendance({ date, report, department  }: Props) {
             if (inTimeSec <= officeStartSec) return null;
 
             const lateBySec = inTimeSec - officeStartSec;
-            const hh = String(Math.floor(lateBySec / 3600)).padStart(2, "0");
-            const mm = String(Math.floor((lateBySec % 3600) / 60)).padStart(2, "0");
-            const ss = String(lateBySec % 60).padStart(2, "0");
+            const hh = String(Math.floor(lateBySec / 3600)).padStart(2, '0');
+            const mm = String(Math.floor((lateBySec % 3600) / 60)).padStart(2, '0');
+            const ss = String(lateBySec % 60).padStart(2, '0');
 
             return { ...emp, late_by: `${hh}:${mm}:${ss}` };
         })
         .filter(Boolean) as (ReportRow & { late_by: string })[];
-
 
     const getNowSeconds = () => {
         const now = new Date();

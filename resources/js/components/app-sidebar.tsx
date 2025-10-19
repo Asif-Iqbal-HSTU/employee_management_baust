@@ -53,7 +53,7 @@ export function AppSidebar() {
             title: 'Assign Users',
             href: '/user-assignments',
             icon: User2,
-        },{
+        }, {
             title: 'Sync Logs',
             href: '/sync-logs',
             icon: Logs,
@@ -64,6 +64,10 @@ export function AppSidebar() {
         mainNavItems.push({
             title: 'All Departments',
             href: '/departments',
+            icon: Logs,
+        },{
+            title: 'Late Summary Report',
+            href: '/late-summary-report',
             icon: Logs,
         });
     }
