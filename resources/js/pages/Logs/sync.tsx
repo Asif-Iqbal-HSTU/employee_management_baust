@@ -13,6 +13,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 export default function SyncLogs() {
     const syncForm = useForm();       // for syncing logs
     const reportForm = useForm();     // for sending reports
+    const usersForm = useForm();      // for syncing users
 
     const [lastSynced, setLastSynced] = useState<string | null>(null);
     const [lastSent, setLastSent] = useState<string | null>(null);
@@ -66,35 +67,23 @@ export default function SyncLogs() {
         });
     };
 
+    const handleSyncUsers = () => {
+        usersForm.post(route('users.sync'), {
+            preserveScroll: true,
+            onSuccess: () => {
+                toast.success('Users synced successfully from devices');
+            },
+            onError: () => {
+                toast.error('User sync failed');
+            }
+        });
+    };
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Dashboard" />
             <div className="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
                 <div className="grid auto-rows-min gap-4 md:grid-cols-3">
-
-                    {/* View Attendance Card */}
-                    {/*<div className="max-w-sm p-6 bg-white border border-gray-200 rounded-lg shadow-sm dark:bg-gray-800 dark:border-gray-700">
-                        <Link href={route('employeeList')}>
-                            <h5 className="mb-2 text-xl font-bold tracking-tight text-gray-900 dark:text-white">
-                                View Employee Attendance
-                            </h5>
-                            <p className="mb-3 font-normal text-gray-700 dark:text-gray-400">
-                                You can access all employees’ attendance data from here.
-                            </p>
-                        </Link>
-                    </div>*/}
-
-                    {/* Today's Attendance Card */}
-                    {/*<div className="max-w-sm p-6 bg-white border border-gray-200 rounded-lg shadow-sm dark:bg-gray-800 dark:border-gray-700">
-                        <Link href={route('attendance.today')}>
-                            <h5 className="mb-2 text-xl font-bold tracking-tight text-gray-900 dark:text-white">
-                                Today's Attendance
-                            </h5>
-                            <p className="mb-3 font-normal text-gray-700 dark:text-gray-400">
-                                View today's attendance records.
-                            </p>
-                        </Link>
-                    </div>*/}
 
                     {/* Sync Logs from Device */}
                     <div className="max-w-sm p-6 bg-white border border-gray-200 rounded-lg shadow-sm dark:bg-gray-800 dark:border-gray-700">
@@ -102,7 +91,7 @@ export default function SyncLogs() {
                             Sync Logs from Device
                         </h5>
                         <p className="mb-3 font-normal text-gray-700 dark:text-gray-400">
-                            Pull raw logs from ZKTeco devices and store into database.
+                            Pull raw logs from ZKTeco devices and store into the database.
                         </p>
                         <button
                             onClick={handleSync}
@@ -135,11 +124,27 @@ export default function SyncLogs() {
                             Last sent: {lastSent ? lastSent : 'Never'}
                         </p>
                     </div>
-                </div>
 
-                {/*<div className="border-sidebar-border/70 dark:border-sidebar-border relative min-h-[100vh] flex-1 overflow-hidden rounded-xl border md:min-h-min">
-                    <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
-                </div>*/}
+                    {/* 🔹 Sync Users from Devices */}
+                    <div className="max-w-sm p-6 bg-white border border-gray-200 rounded-lg shadow-sm dark:bg-gray-800 dark:border-gray-700">
+                        <h5 className="mb-2 text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+                            Sync Users from Devices
+                        </h5>
+                        <p className="mb-3 font-normal text-gray-700 dark:text-gray-400">
+                            Fetch user information (ID and name) from all connected devices.
+                        </p>
+                        <button
+                            onClick={handleSyncUsers}
+                            disabled={usersForm.processing}
+                            className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-md focus:outline-none disabled:bg-gray-400"
+                        >
+                            {usersForm.processing ? 'Syncing...' : 'Sync Users'}
+                        </button>
+                        <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
+                            Pulls user list from all ZKTeco devices.
+                        </p>
+                    </div>
+                </div>
             </div>
         </AppLayout>
     );

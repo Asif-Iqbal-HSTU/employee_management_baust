@@ -427,7 +427,7 @@ Route::post('/attendance/sync', [AttendanceController::class, 'syncDeviceLogs'])
 
 
 Route::post('/users/sync', [AttendanceController::class, 'syncUsersFromDevices'])->name('users.sync');
-Route::get('/users/sync', [AttendanceController::class, 'syncUsersFromDevices'])->name('users.sync');
+//Route::get('/users/sync', [AttendanceController::class, 'syncUsersFromDevices'])->name('users.sync');
 
 
 Route::post('/logs/sync', [\App\Http\Controllers\DeviceLogController::class, 'syncRawLogs'])->name('logs.sync');

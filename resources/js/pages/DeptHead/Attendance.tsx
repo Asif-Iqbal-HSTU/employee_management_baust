@@ -3,7 +3,7 @@ import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/react';
 import axios from 'axios';
-import { LoaderCircle } from 'lucide-react';
+import { LoaderCircle, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 type ReportRow = {
@@ -320,14 +320,14 @@ export default function Attendance({ date, report, department }: Props) {
                 )}
 
                 {/* Modal */}
-                {modalOpen && employeeData && !loading && selectedEmp && (
+                {/*{modalOpen && employeeData && !loading && selectedEmp && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
                         <div className="max-h-[90vh] w-full max-w-7xl overflow-y-auto rounded-xl bg-white p-6 shadow-lg">
                             <h2 className="mb-4 text-xl font-bold">
                                 {selectedEmp.name} ({selectedEmp.employee_id}) - {employeeData.month}/{employeeData.year}
                             </h2>
 
-                            {/* Summary */}
+                             Summary
                             <div className="mb-6">
                                 <h3 className="font-semibold">Monthly Summary</h3>
                                 <table className="w-full border-collapse">
@@ -348,7 +348,7 @@ export default function Attendance({ date, report, department }: Props) {
                                 </table>
                             </div>
 
-                            {/* Calendar */}
+                             Calendar
                             <AttendanceCalendar logs={employeeData.calendarLogs} month={employeeData.month} year={employeeData.year} />
 
                             <button onClick={() => setModalOpen(false)} className="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-white">
@@ -356,7 +356,56 @@ export default function Attendance({ date, report, department }: Props) {
                             </button>
                         </div>
                     </div>
+                )}*/}
+
+                {/* Modal */}
+                {modalOpen && employeeData && !loading && selectedEmp && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+                        <div className="relative max-h-[90vh] w-full max-w-7xl overflow-y-auto rounded-xl bg-white p-6 shadow-lg">
+                            {/* ✖️ Close Icon */}
+                            <button
+                                onClick={() => setModalOpen(false)}
+                                className="absolute right-4 top-4 text-gray-500 hover:text-gray-800 transition"
+                                aria-label="Close"
+                            >
+                                <X className="h-8 w-8" />
+                            </button>
+
+                            <h2 className="mb-4 text-xl font-bold">
+                                {selectedEmp.name} ({selectedEmp.employee_id}) - {employeeData.month}/{employeeData.year}
+                            </h2>
+
+                            {/* Summary */}
+                            <div className="mb-6">
+                                <h3 className="font-semibold">Monthly Summary</h3>
+                                <table className="w-full border-collapse">
+                                    <thead>
+                                    <tr className="bg-gray-100">
+                                        <th className="border px-2 py-1">Absences</th>
+                                        <th className="border px-2 py-1">Late Entries</th>
+                                        <th className="border px-2 py-1">Early Leaves</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <tr>
+                                        <td className="border px-2 py-1">{employeeData.summary.absence}</td>
+                                        <td className="border px-2 py-1">{employeeData.summary.late}</td>
+                                        <td className="border px-2 py-1">{employeeData.summary.early}</td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {/* Calendar */}
+                            <AttendanceCalendar
+                                logs={employeeData.calendarLogs}
+                                month={employeeData.month}
+                                year={employeeData.year}
+                            />
+                        </div>
+                    </div>
                 )}
+
             </div>
         </AppLayout>
     );

@@ -36,7 +36,7 @@ export function AppSidebar() {
     ];
 
 // if dept head
-    if (authUser?.headed_department) {
+    if (authUser?.headed_department || authUser?.employee_id==25052 || authUser?.employee_id==21023) {
         mainNavItems.push({
             title: 'My Department Attendance',
             href: '/dept-head/attendance',
@@ -60,7 +60,7 @@ export function AppSidebar() {
         });
     }
 
-    if (authUser?.employee_id==25052 || authUser?.employee_id==15012 || authUser?.employee_id==25040) {
+    if (authUser?.employee_id==25052 || authUser?.employee_id==15012 || authUser?.employee_id==25040 || authUser?.employee_id==21023) {
         mainNavItems.push({
             title: 'All Departments',
             href: '/departments',
@@ -72,7 +72,7 @@ export function AppSidebar() {
         });
     }
 
-    if (authUser?.employee_id==23033 || authUser?.employee_id==25052 || authUser?.employee_id==25040 || authUser?.employee_id==15012) {
+    if (authUser?.employee_id==23033 || authUser?.employee_id==25052 || authUser?.employee_id==25040 || authUser?.employee_id==15012 || authUser?.employee_id==21023) {
         mainNavItems.push({
             title: 'Monthly Report',
             href: '/departmentList',
