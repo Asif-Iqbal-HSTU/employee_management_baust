@@ -60,7 +60,7 @@ export function AppSidebar() {
         });
     }
 
-    if (authUser?.employee_id==25052 || authUser?.employee_id==15012 || authUser?.employee_id==25040 || authUser?.employee_id==21023) {
+    if (authUser?.employee_id==25052 || authUser?.employee_id==15012 || authUser?.employee_id==25040 || authUser?.employee_id==21023 || authUser?.employee_id==15231) {
         mainNavItems.push({
             title: 'All Departments',
             href: '/departments',
