@@ -6,7 +6,7 @@ use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use App\Http\Controllers\DeptHeadAttendanceController;
-
+use App\Models\Holiday;
 use App\Http\Controllers\AttendanceController;
 
 Route::get('/', function () {
@@ -221,6 +221,125 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', function () {
         $employeeId = auth()->user()->employee_id;
 
+        $month = (int) request('month', now()->month);
+        $year  = (int) request('year', now()->year);
+
+        $start = Carbon::create($year, $month, 1)->startOfMonth();
+        $end   = Carbon::create($year, $month, 1)->endOfMonth();
+        $today = Carbon::today();
+
+        // --- Today’s first entry
+        $todayLog = DB::table('device_logs')
+            ->where('employee_id', $employeeId)
+            ->whereDate('timestamp', $today)
+            ->orderBy('timestamp')
+            ->pluck('timestamp');
+
+        $todayEntry = $todayLog->count() > 0
+            ? Carbon::parse($todayLog->first())->format('H:i')
+            : null;
+
+        // --- Last 7 days
+        $logs = collect();
+        for ($i = 0; $i < 7; $i++) {
+            $date = $today->copy()->subDays($i);
+            $daily = DB::table('device_logs')
+                ->where('employee_id', $employeeId)
+                ->whereDate('timestamp', $date)
+                ->orderBy('timestamp')
+                ->pluck('timestamp');
+
+            $in = $daily->count() > 0 ? Carbon::parse($daily->first())->format('H:i') : 'Absent';
+            $out = $daily->count() > 1 && $daily->last() !== $daily->first()
+                ? Carbon::parse($daily->last())->format('H:i')
+                : '';
+
+            $logs->push([
+                'date' => $date->toDateString(),
+                'in_time' => $in,
+                'out_time' => $out,
+            ]);
+        }
+
+        // --- Monthly attendance
+        $calendarRows = DB::table('device_logs')
+            ->selectRaw('DATE(timestamp) as d, MIN(timestamp) as first_ts, MAX(timestamp) as last_ts')
+            ->where('employee_id', $employeeId)
+            ->whereBetween('timestamp', [$start->copy()->startOfDay(), $end->copy()->endOfDay()])
+            ->groupBy('d')
+            ->orderBy('d', 'asc')
+            ->get();
+
+        $byDate = [];
+        foreach ($calendarRows as $row) {
+            $in  = $row->first_ts ? Carbon::parse($row->first_ts)->format('H:i') : null;
+            $out = ($row->last_ts && $row->last_ts !== $row->first_ts)
+                ? Carbon::parse($row->last_ts)->format('H:i')
+                : null;
+            $byDate[$row->d] = ['in_time' => $in, 'out_time' => $out];
+        }
+
+        // ✅ Fetch holidays from DB
+        $holidayData = Holiday::whereBetween('date', [$start, $end])->get();
+        $holidayDates = $holidayData->pluck('date')->map->toDateString();
+        $holidayNames = $holidayData->pluck('name', 'date')->filter();
+
+        // --- Build calendar
+        $calendarLogs = [];
+        for ($d = $start->copy(); $d->lte($end); $d->addDay()) {
+            $dateStr   = $d->toDateString();
+            $hasPunch  = array_key_exists($dateStr, $byDate);
+            $isHoliday = $holidayDates->contains($dateStr);
+            $isWeekend = in_array($d->dayOfWeek, [5, 6]); // Fri/Sat
+            $isFuture  = $d->gt($today);
+
+            $label = $isHoliday ? ($holidayNames[$dateStr] ?? 'Holiday') : ($isWeekend ? 'Weekend' : null);
+
+            if ($hasPunch) {
+                $status = $isHoliday ? 'holiday' : ($isWeekend ? 'weekend' : 'present');
+                $calendarLogs[] = [
+                    'date' => $dateStr,
+                    'in_time' => $byDate[$dateStr]['in_time'],
+                    'out_time' => $byDate[$dateStr]['out_time'],
+                    'status' => $status,
+                    'label' => $label,
+                ];
+            } elseif ($isHoliday) {
+                $calendarLogs[] = ['date' => $dateStr, 'in_time' => null, 'out_time' => null, 'status' => 'holiday', 'label' => $label];
+            } elseif ($isWeekend) {
+                $calendarLogs[] = ['date' => $dateStr, 'in_time' => null, 'out_time' => null, 'status' => 'weekend', 'label' => $label];
+            } elseif ($isFuture) {
+                $calendarLogs[] = ['date' => $dateStr, 'in_time' => null, 'out_time' => null, 'status' => 'future', 'label' => null];
+            } else {
+                $calendarLogs[] = ['date' => $dateStr, 'in_time' => null, 'out_time' => null, 'status' => 'absent', 'label' => null];
+            }
+        }
+
+        // --- Summary
+        $absence = $late = $early = 0;
+        foreach ($calendarLogs as $row) {
+            if ($row['status'] === 'absent') $absence++;
+            elseif ($row['status'] === 'present') {
+                if ($row['in_time'] && $row['in_time'] > '08:00') $late++;
+                if ($row['out_time'] && $row['out_time'] < '14:30') $early++;
+            }
+        }
+
+        $summary = compact('absence', 'late', 'early');
+
+        return Inertia::render('dashboard', [
+            'todayEntry'   => $todayEntry,
+            'logs'         => $logs,
+            'calendarLogs' => $calendarLogs,
+            'employeeId'   => $employeeId,
+            'summary'      => $summary,
+            'month'        => $month,
+            'year'         => $year,
+        ]);
+    })->name('dashboard');
+    /*Route::get('dashboard', function () {
+        $employeeId = auth()->user()->employee_id;
+
         // Accept month/year (fallback to current)
         $month = (int) request('month', now()->month);
         $year  = (int) request('year', now()->year);
@@ -374,7 +493,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             'month'         => $month,
             'year'          => $year,
         ]);
-    })->name('dashboard');
+    })->name('dashboard');*/
 });
 
 Route::get('/sync-logs', function () {

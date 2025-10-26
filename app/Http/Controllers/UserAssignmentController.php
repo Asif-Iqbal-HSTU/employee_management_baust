@@ -24,7 +24,7 @@ class UserAssignmentController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    /*public function store(Request $request)
     {
         $validated = $request->validate([
             'employee_id' => 'required|string|exists:users,employee_id',
@@ -41,6 +41,58 @@ class UserAssignmentController extends Controller
         );
 
         return response()->json(['success' => true]);
+    }*/
+
+    /*public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'employee_id' => 'required|string|exists:users,employee_id',
+            'department_id' => 'required|exists:departments,id',
+            'designation_id' => 'required|exists:designations,id',
+        ]);
+
+        $assignment = UserAssignment::where('employee_id', $validated['employee_id'])->first();
+
+        if ($assignment) {
+            // ✅ Update existing record
+            $assignment->update([
+                'department_id' => $validated['department_id'],
+                'designation_id' => $validated['designation_id'],
+            ]);
+        } else {
+            // ✅ Create new record
+            UserAssignment::create([
+                'employee_id' => $validated['employee_id'],
+                'department_id' => $validated['department_id'],
+                'designation_id' => $validated['designation_id'],
+            ]);
+        }
+
+        return response()->json(['success' => true]);
+    }*/
+
+    public function store(Request $request)
+    {
+        $assignment = UserAssignment::where('employee_id', $request->employee_id)->first();
+
+        if ($assignment) {
+            // ✅ Update existing record
+            $assignment->update([
+                'department_id' => $request->department_id,
+                'designation_id' => $request->designation_id,
+            ]);
+        } else {
+            // ✅ Create new record
+            UserAssignment::create([
+                'employee_id' => $request->employee_id,
+                'department_id' => $request->department_id,
+                'designation_id' => $request->designation_id,
+            ]);
+        }
+
+        return response()->json(['success' => true]);
     }
+
+
 }
 
