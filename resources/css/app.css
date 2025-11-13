@@ -148,6 +148,11 @@
     --sidebar-ring: oklch(0.439 0 0);
 }
 
+.input {
+    @apply w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring focus:ring-blue-200 focus:border-blue-500;
+}
+
+
 @layer base {
     * {
         @apply border-border;

@@ -8,6 +8,8 @@ use Carbon\Carbon;
 use App\Http\Controllers\DeptHeadAttendanceController;
 use App\Models\Holiday;
 use App\Http\Controllers\AttendanceController;
+use App\Http\Controllers\WorklogController;
+use App\Http\Controllers\RepairRequestController;
 
 Route::get('/', function () {
     return Inertia::render('welcome');
@@ -511,8 +513,8 @@ Route::middleware(['auth'])->group(function () {
 Route::middleware(['auth'])->group(function () {
     Route::get('/dept-head/attendance', [DeptHeadAttendanceController::class, 'index'])
         ->name('depthead.attendance');
-    Route::get('/dept-head/employee/{employeeId}/monthly', [DeptHeadAttendanceController::class, 'employeeMonthly'])
-        ->name('depthead.employee.monthly');
+//    Route::get('/dept-head/employee/{employeeId}/monthly', [DeptHeadAttendanceController::class, 'employeeMonthly'])
+//        ->name('depthead.employee.monthly');
 
     Route::get('/departments/{id}/attendance', [AttendanceController::class, 'show'])
         ->name('departments.attendance');
@@ -522,9 +524,9 @@ Route::middleware(['auth'])->group(function () {
 
 });
 
-
-Route::get('/dept-head/employee/{employeeId}/monthly', [DeptHeadAttendanceController::class, 'employeeMonthly'])
-    ->name('depthead.employee.mon');
+//
+//Route::get('/dept-head/employee/{employeeId}/monthly', [DeptHeadAttendanceController::class, 'employeeMonthly'])
+//    ->name('depthead.employee.mon');
 
 Route::get('/zk/logs', [App\Http\Controllers\ZKTecoController::class, 'getLogs']);
 Route::get('/zk/users', [App\Http\Controllers\ZKTecoController::class, 'getUsers']);
@@ -561,6 +563,10 @@ Route::post('/user-assignments', [UserAssignmentController::class, 'store'])->na
 Route::get('/departments', [AttendanceController::class, 'departments'])->name('departments');
 Route::get('/departmentList', [AttendanceController::class, 'departmentList'])->name('departmentList');
 Route::get('/departments/{id}/monthly-report', [AttendanceController::class, 'monthlyReport'])->name('monthlyReport');
+Route::get('/departments/{deptId}/report', [AttendanceController::class, 'dateRangeReport'])
+    ->name('departments.dateRangeReport');
+
+
 
 Route::get('/late-summary-report', [AttendanceController::class, 'showLateSummaryReport'])->name('late.summary.report');
 
@@ -571,5 +577,25 @@ Route::post('/report/send-department-attendance', [\App\Http\Controllers\ReportC
 //Route::get('/attendance/dashboard-data', [\App\Http\Controllers\AttendanceController::class, 'dashboardData'])
 //    ->name('attendance.dashboardData');
 
+
+//Route::get('/worklog', [WorklogController::class, 'departmentList'])->name('worklog_departmentList');
+Route::get('/worklog', [WorklogController::class, 'index'])->name('worklog.index');
+Route::post('/worklog', [WorklogController::class, 'store'])->name('worklog.store');
+
+Route::get('/departments/{id}/employees', [WorklogController::class, 'showEmployees'])->name('departments.employees');
+Route::get('/employees/{employeeId}/worklogs', [WorklogController::class, 'getEmployeeWorklogs'])->name('employees.worklogs');
+
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/repair-requests', [RepairRequestController::class, 'index'])->name('repair.index');
+    Route::get('/repair-requests/create', [RepairRequestController::class, 'create'])->name('repair.create');
+    Route::post('/repair-requests', [RepairRequestController::class, 'store'])->name('repair.store');
+    Route::post('/repair-requests/{repairRequest}/status', [RepairRequestController::class, 'updateStatus'])->name('repair.updateStatus');
+    Route::get('/repair-requests/{repairRequest}/edit', [RepairRequestController::class, 'edit'])->name('repair.edit');
+    Route::put('/repair-requests/{repairRequest}', [RepairRequestController::class, 'update'])->name('repair.update');
+    Route::get('/repair/{id}/view', [RepairRequestController::class, 'view'])->name('repair.view');
+
+
+});
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';

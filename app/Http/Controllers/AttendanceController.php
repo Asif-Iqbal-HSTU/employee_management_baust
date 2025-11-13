@@ -696,7 +696,6 @@ class AttendanceController extends Controller
     {
         $departments = Department::all();
 
-
         return inertia('Departments/deptListForMonthlyReport', [
             'departments' => $departments,
         ]);
@@ -1164,6 +1163,102 @@ class AttendanceController extends Controller
             'holidays'    => $holidayDates, // optional: show holidays in UI
         ]);
     }
+
+    public function dateRangeReport(Request $request, $deptId)
+    {
+        $startDate = Carbon::parse($request->input('startDate', now()->startOfMonth()));
+        $endDate   = Carbon::parse($request->input('endDate', now()->subDay()));
+
+        // --- 1️⃣ Get holidays within the range
+        $holidayDates = Holiday::whereBetween('date', [$startDate, $endDate])
+            ->pluck('date')
+            ->map(fn($d) => Carbon::parse($d)->toDateString())
+            ->toArray();
+
+        // --- 2️⃣ Working days excluding Friday(5), Saturday(6), and holidays
+        $dates = collect();
+        for ($date = $startDate->copy(); $date <= $endDate; $date->addDay()) {
+            $dayOfWeek = $date->dayOfWeekIso;
+            $isWeekend = in_array($dayOfWeek, [5, 6]);
+            $isHoliday = in_array($date->toDateString(), $holidayDates);
+
+            if (!$isWeekend && !$isHoliday) {
+                $dates->push($date->toDateString());
+            }
+        }
+
+        // --- 3️⃣ Department
+        $department = DB::table('departments')->find($deptId);
+
+        // --- 4️⃣ Employees
+        $employees = DB::table('users')
+            ->join('user_assignments', 'users.employee_id', '=', 'user_assignments.employee_id')
+            ->leftJoin('designations', 'designations.id', '=', 'user_assignments.designation_id')
+            ->where('user_assignments.department_id', $deptId)
+            ->select('users.employee_id', 'users.name', 'designations.designation_name as designation')
+            ->get();
+
+        $report = [];
+
+        // --- 5️⃣ Attendance calculation
+        foreach ($employees as $employee) {
+            $present = $late = $earlyLeave = $overtimeDays = $totalOvertimeMinutes = 0;
+
+            foreach ($dates as $date) {
+                $logs = DB::table('device_logs')
+                    ->where('employee_id', $employee->employee_id)
+                    ->whereDate('timestamp', $date)
+                    ->orderBy('timestamp')
+                    ->pluck('timestamp');
+
+                if ($logs->isNotEmpty()) {
+                    $present++;
+
+                    $firstLog = Carbon::parse($logs->first());
+                    $lastLog  = Carbon::parse($logs->last());
+
+                    if ($firstLog->gt(Carbon::parse("$date 08:00:00"))) $late++;
+                    if ($lastLog->lt(Carbon::parse("$date 14:30:00"))) $earlyLeave++;
+
+                    $workedMinutes = $lastLog->diffInMinutes($firstLog);
+                    $requiredMinutes = 6 * 60 + 30;
+
+                    if ($workedMinutes > $requiredMinutes) {
+                        $overtimeDays++;
+                        $totalOvertimeMinutes += ($workedMinutes - $requiredMinutes);
+                    }
+                }
+            }
+
+            $totalWorkdays = $dates->count();
+            $absent = $totalWorkdays - $present;
+            $overtimeHours = $totalOvertimeMinutes / 60;
+            $overtimeEquivalentDays = $overtimeHours / 6.5;
+
+            $report[] = [
+                'id'                  => $employee->employee_id,
+                'name'                => $employee->name,
+                'designation'         => $employee->designation,
+                'total_days'          => $totalWorkdays,
+                'present'             => $present,
+                'absent'              => $absent,
+                'late'                => $late,
+                'early_leave'         => $earlyLeave,
+                'overtime_days'       => $overtimeDays,
+                'overtime_hours'      => $overtimeHours,
+                'overtime_equiv_days' => $overtimeEquivalentDays,
+            ];
+        }
+
+        return inertia('Departments/MonthlyReport', [
+            'report'      => $report,
+            'department'  => $department,
+            'monthName'   => $startDate->format('d M Y') . ' - ' . $endDate->format('d M Y'),
+            'startDate'   => $startDate->toDateString(),
+            'endDate'     => $endDate->toDateString(),
+        ]);
+    }
+
 
 
 

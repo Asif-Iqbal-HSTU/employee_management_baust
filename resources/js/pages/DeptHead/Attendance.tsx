@@ -52,7 +52,8 @@ export default function Attendance({ date, report, department }: Props) {
     const openEmployeeModal = async (emp: ReportRow) => {
         try {
             setLoading(true);
-            const res = await axios.get(route('depthead.employee.mon', { employeeId: emp.employee_id }));
+            // const res = await axios.get(route('depthead.employee.monthly', { employeeId: emp.employee_id }));
+            const res = await axios.get(route('dept.employee.monthly', { employeeId: emp.employee_id }));
 
             setEmployeeData(res.data);
 

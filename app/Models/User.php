@@ -62,5 +62,15 @@ class User extends Authenticatable
         return $this->hasOne(DeptHead::class, 'employee_id', 'employee_id');
     }
 
+    public function worklogs()
+    {
+        return $this->hasMany(Worklog::class, 'employee_id', 'employee_id');
+    }
+
+    public function repairrequests()
+    {
+        return $this->hasMany(RepairRequest::class, 'employee_id', 'employee_id');
+    }
+
 
 }
