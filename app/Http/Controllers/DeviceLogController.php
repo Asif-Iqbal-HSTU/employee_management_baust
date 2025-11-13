@@ -54,7 +54,7 @@ class DeviceLogController extends Controller
                 );
             }
 
-            // $zk->clearAttendance(); // optional
+            $zk->clearAttendance();
             $zk->enableDevice();
             $zk->disconnect();
         }
