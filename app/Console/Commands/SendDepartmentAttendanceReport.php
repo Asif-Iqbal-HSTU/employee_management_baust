@@ -26,8 +26,9 @@ class SendDepartmentAttendanceReport extends Command
         $yesterday = now()->subDay()->toDateString();
         $dayBefore = now()->subDays(2)->toDateString();
 
-        $rawDates = [$yesterday, $today];
-//        $rawDates = [$dayBefore, $yesterday, $today];
+//        $rawDates = [$yesterday, $today];
+//        $rawDates = [$yesterday];
+        $rawDates = [$dayBefore, $yesterday, $today];
 //        $rawDates = [$dayBefore, $yesterday];
 
         // Exclude Friday (5) and Saturday (6)

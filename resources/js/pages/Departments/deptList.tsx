@@ -1,10 +1,17 @@
 import AppLayout from '@/layouts/app-layout';
-import type { BreadcrumbItem } from '@/types';
-import { Head, Link } from '@inertiajs/react';
+import type { BreadcrumbItem, SharedData } from '@/types';
+import { Head, Link, usePage } from '@inertiajs/react';
 import { Bar, BarChart, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-
 export default function DeptList({ departments, attendance }: any) {
     const breadcrumbs: BreadcrumbItem[] = [{ title: 'All Department Attendance', href: '/departments' }];
+    const { auth } = usePage<SharedData>().props;
+    const userId = auth.user.employee_id;
+    console.log(userId);
+    // If user is 15005, show only department 12
+    const filteredDepartments =
+        userId == 15005
+            ? departments.filter((dept: any) => dept.id === 12)
+            : departments;
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -13,7 +20,7 @@ export default function DeptList({ departments, attendance }: any) {
                 <h1 className="mb-6 text-xl font-bold">All Departments</h1>
 
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-2">
-                    {departments.map((dept: any) => (
+                    {filteredDepartments.map((dept: any) => (
                         <Link
                             key={dept.id}
                             href={`/departments/${dept.id}/attendance`}
@@ -21,11 +28,17 @@ export default function DeptList({ departments, attendance }: any) {
                         >
                             <div className="mt-4">
                                 <h2 className="text-lg font-semibold">{dept.short_name}</h2>
+
                                 {attendance[dept.id]?.today && (
                                     <p className="mb-2 text-sm text-gray-600">
-                                        (Today: Total: {attendance[dept.id].today.total} | Late:{' '}
-                                        <span className="font-medium text-orange-500">{attendance[dept.id].today.late}</span> | Not Present:{' '}
-                                        <span className="font-medium text-red-500">{attendance[dept.id].today.absent}</span>)
+                                        (Today: Total: {attendance[dept.id].today.total} |
+                                        Late: <span className="font-medium text-orange-500">
+                                            {attendance[dept.id].today.late}
+                                        </span> |
+                                        Not Present:{' '}
+                                        <span className="font-medium text-red-500">
+                                            {attendance[dept.id].today.absent}
+                                        </span>)
                                     </p>
                                 )}
 
@@ -36,8 +49,8 @@ export default function DeptList({ departments, attendance }: any) {
                                             <YAxis />
                                             <Tooltip />
                                             <Legend />
-                                            <Bar dataKey="absent" fill="#ef4444" name="Absent" />
-                                            <Bar dataKey="late" fill="#f97316" name="Late" />
+                                            <Bar dataKey="absent" fill="#ef4444" name="Not Present" />
+                                            <Bar dataKey="late" fill="#9003fc" name="Late" />
                                         </BarChart>
                                     </ResponsiveContainer>
                                 </div>
@@ -49,3 +62,4 @@ export default function DeptList({ departments, attendance }: any) {
         </AppLayout>
     );
 }
+

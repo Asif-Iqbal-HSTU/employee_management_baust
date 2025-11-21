@@ -38,16 +38,45 @@ export function AppSidebar() {
         );
     }
 
-    if ([25052, 15012, 25040, 21023, 15231].includes(authUser?.employee_id)) {
+
+    if (authUser?.employee_id == 25052 ||
+        authUser?.employee_id == 15012 ||
+        authUser?.employee_id == 21023 ||
+        authUser?.employee_id == 25040 ||
+        authUser?.employee_id == 15231) {
         mainNavItems.push(
             { title: 'All Departments', href: '/departments', icon: Logs },
             { title: 'Late Summary Report', href: '/late-summary-report', icon: Logs }
         );
     }
 
-    if ([23033, 25052, 25040, 15012, 21023].includes(authUser?.employee_id)) {
+    if (
+        authUser?.employee_id == 15005) {
+        mainNavItems.push(
+            { title: 'All Departments', href: '/departments', icon: Logs },
+        );
+    }
+
+    /*if ([25052, 15012, 25040, 21023, 15231].includes(authUser?.employee_id)) {
+        mainNavItems.push(
+            { title: 'All Departments', href: '/departments', icon: Logs },
+            { title: 'Late Summary Report', href: '/late-summary-report', icon: Logs }
+        );
+    }*/
+
+    if (authUser?.headed_department ||
+        authUser?.employee_id == 23033 ||
+        authUser?.employee_id == 25052 ||
+        authUser?.employee_id == 25040 ||
+        authUser?.employee_id == 15012 ||
+        authUser?.employee_id == 21023)
+    {
         mainNavItems.push({ title: 'Monthly Report', href: '/departmentList', icon: Calendar });
     }
+
+    // if ([23033, 25052, 25040, 15012, 21023].includes(authUser?.employee_id)) {
+    //     mainNavItems.push({ title: 'Monthly Report', href: '/departmentList', icon: Calendar });
+    // }
 
     mainNavItems.push(
         { title: 'Worklog', href: '/worklog', icon: Calendar },
