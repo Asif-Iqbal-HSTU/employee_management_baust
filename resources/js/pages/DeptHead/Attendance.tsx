@@ -66,26 +66,7 @@ export default function Attendance({ date, report, department }: Props) {
         }
     };
 
-    /*const openEmployeeModal = (emp: ReportRow) => {
-        setLoading(true);
 
-        router.get(
-            route('depthead.employee.mon', { employeeId: emp.employee_id }),
-            {},
-            {
-                preserveScroll: true,
-                preserveState: true,
-                onSuccess: (page) => {
-                    // `page.props` holds what Laravel returned via Inertia
-                    setEmployeeData(page.props.calendarLogs);
-                    setSelectedEmp(emp);
-                    setModalOpen(true);
-                    setLoading(false);
-                },
-                onError: () => setLoading(false),
-            },
-        );
-    };*/
 
     // Search filter (ID or Name)
     const filteredReport = useMemo(() => {
@@ -94,56 +75,6 @@ export default function Attendance({ date, report, department }: Props) {
         return report.filter((emp) => emp.employee_id.toString().includes(q) || emp.name.toLowerCase().includes(q));
     }, [report, searchTerm]);
 
-    //const officeStartMinutes = useMemo(() => toMinutes(OFFICE_START) ?? 0, []);
-
-    // Late employees (in_time after office start)
-    /*const lateEmployees = useMemo(() => {
-        return report
-            .map((emp) => {
-                const mins = toMinutes(emp.in_time);
-                if (mins === null) return null; // Absent/no time
-                if (mins <= officeStartMinutes) return null;
-                const lateBy = mins - officeStartMinutes;
-                return { ...emp, late_by: fmtHHMM(lateBy) };
-            })
-            .filter(Boolean) as (ReportRow & { late_by: string })[];
-    }, [report, officeStartMinutes]);*/
-    /*const parseTime = (timeStr) => {
-        if (!timeStr) return null;
-        const [h, m, s] = timeStr.split(":").map(Number);
-        return h * 60 + m + s / 60; // minutes
-    };
-
-    const officeStartMinutes = parseTime(OFFICE_START);
-    const lateEmployees = report
-        .filter((emp) => emp.in_time && parseTime(emp.in_time) > officeStartMinutes)
-        .map((emp) => {
-            const lateByMin = parseTime(emp.in_time) - officeStartMinutes;
-            const hh = String(Math.floor(lateByMin / 60)).padStart(2, "0");
-            const mm = String(Math.floor(lateByMin % 60)).padStart(2, "0");
-            const ss = String(Math.floor(lateByMin % 60)).padStart(2, "0");
-            return { ...emp, late_by: `${hh}:${mm}:${ss}` };
-        });*/
-
-    // convert HH:MM:SS to total seconds
-    /*const parseTime = (time) => {
-        const [h, m, s] = time.split(":").map(Number);
-        return h * 3600 + m * 60 + (s || 0);
-    };
-
-    const officeStartSeconds = parseTime(OFFICE_START);
-
-    const lateEmployees = report
-        .filter((emp) => emp.in_time && parseTime(emp.in_time) > officeStartSeconds)
-        .map((emp) => {
-            const lateBySec = parseTime(emp.in_time) - officeStartSeconds;
-
-            const hh = String(Math.floor(lateBySec / 3600)).padStart(2, "0");
-            const mm = String(Math.floor((lateBySec % 3600) / 60)).padStart(2, "0");
-            const ss = String(lateBySec % 60).padStart(2, "0");
-
-            return { ...emp, late_by: `${hh}:${mm}:${ss}` };
-        });*/
 
     // parse HH:MM:SS into seconds
     const parseTime = (time?: string | null): number | null => {
@@ -194,12 +125,6 @@ export default function Attendance({ date, report, department }: Props) {
             return true;
         });
     }, [report]);
-
-    // Absent employees (controller sets in_time === "Absent")
-    /*const absentEmployees = useMemo(
-        () => report.filter((emp) => emp.in_time === "Absent"),
-        [report]
-    );*/
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -319,45 +244,6 @@ export default function Attendance({ date, report, department }: Props) {
                         <span className="mt-3 text-sm text-white">Loading employee data...</span>
                     </div>
                 )}
-
-                {/* Modal */}
-                {/*{modalOpen && employeeData && !loading && selectedEmp && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-                        <div className="max-h-[90vh] w-full max-w-7xl overflow-y-auto rounded-xl bg-white p-6 shadow-lg">
-                            <h2 className="mb-4 text-xl font-bold">
-                                {selectedEmp.name} ({selectedEmp.employee_id}) - {employeeData.month}/{employeeData.year}
-                            </h2>
-
-                             Summary
-                            <div className="mb-6">
-                                <h3 className="font-semibold">Monthly Summary</h3>
-                                <table className="w-full border-collapse">
-                                    <thead>
-                                        <tr className="bg-gray-100">
-                                            <th className="border px-2 py-1">Absences</th>
-                                            <th className="border px-2 py-1">Late Entries</th>
-                                            <th className="border px-2 py-1">Early Leaves</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td className="border px-2 py-1">{employeeData.summary.absence}</td>
-                                            <td className="border px-2 py-1">{employeeData.summary.late}</td>
-                                            <td className="border px-2 py-1">{employeeData.summary.early}</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-
-                             Calendar
-                            <AttendanceCalendar logs={employeeData.calendarLogs} month={employeeData.month} year={employeeData.year} />
-
-                            <button onClick={() => setModalOpen(false)} className="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-white">
-                                Close
-                            </button>
-                        </div>
-                    </div>
-                )}*/}
 
                 {/* Modal */}
                 {modalOpen && employeeData && !loading && selectedEmp && (

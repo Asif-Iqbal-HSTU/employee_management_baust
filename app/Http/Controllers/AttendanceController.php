@@ -574,45 +574,6 @@ class AttendanceController extends Controller
 
         $deptSummaries = [];
 
-        /*foreach ($departments as $dept) {
-            $summary = [];
-
-            foreach ($dates as $date) {
-                $employees = DB::table('users')
-                    ->join('user_assignments', 'users.employee_id', '=', 'user_assignments.employee_id')
-                    ->where('user_assignments.department_id', $dept->id)
-                    ->pluck('users.employee_id');
-
-                $absent = 0;
-                $late = 0;
-
-                foreach ($employees as $empId) {
-                    $log = DB::table('device_logs')
-                        ->where('employee_id', $empId)
-                        ->whereDate('timestamp', $date)
-                        ->orderBy('timestamp')
-                        ->pluck('timestamp');
-
-                    if ($log->isEmpty()) {
-                        $absent++;
-                    } else {
-                        $inTime = \Carbon\Carbon::parse($log->first())->format('H:i:s');
-                        if ($inTime > '08:00:00') {
-                            $late++;
-                        }
-                    }
-                }
-
-                $summary[] = [
-                    'date'   => $date,
-                    'absent' => $absent,
-                    'late'   => $late,
-                ];
-            }
-
-            $deptSummaries[$dept->id] = $summary;
-        }*/
-
         foreach ($departments as $dept) {
             $summary = [];
 

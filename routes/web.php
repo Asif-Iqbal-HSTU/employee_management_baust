@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\DailyAttendanceController;
 use App\Http\Controllers\TimeAssignmentController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -584,6 +585,10 @@ Route::post('/worklog', [WorklogController::class, 'store'])->name('worklog.stor
 
 Route::get('/departments/{id}/employees', [WorklogController::class, 'showEmployees'])->name('departments.employees');
 Route::get('/employees/{employeeId}/worklogs', [WorklogController::class, 'getEmployeeWorklogs'])->name('employees.worklogs');
+
+
+Route::post('/daily-attendance/generate', [DailyAttendanceController::class, 'generateDailyAttendance'])
+    ->name('daily.generate');
 
 
 Route::middleware(['auth'])->group(function () {

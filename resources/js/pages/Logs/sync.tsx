@@ -14,6 +14,8 @@ export default function SyncLogs() {
     const syncForm = useForm();       // for syncing logs
     const reportForm = useForm();     // for sending reports
     const usersForm = useForm();      // for syncing users
+    const dailyForm = useForm();   // for generating daily attendance
+
 
     const [lastSynced, setLastSynced] = useState<string | null>(null);
     const [lastSent, setLastSent] = useState<string | null>(null);
@@ -53,6 +55,19 @@ export default function SyncLogs() {
             }
         });
     };
+
+    const handleGenerateDailyAttendance = () => {
+        dailyForm.post(route('daily.generate'), {
+            preserveScroll: true,
+            onSuccess: () => {
+                toast.success('Daily attendance generated');
+            },
+            onError: () => {
+                toast.error('Failed to generate daily attendance');
+            }
+        });
+    };
+
 
     const handleSendReport = () => {
         reportForm.post(route('report.send_department'), {
@@ -104,6 +119,25 @@ export default function SyncLogs() {
                             Last synced: {lastSynced ? lastSynced : 'Never'}
                         </p>
                     </div>
+
+                    {/* Generate Daily Attendance Table */}
+                    <div className="max-w-sm p-6 bg-white border border-gray-200 rounded-lg shadow-sm dark:bg-gray-800 dark:border-gray-700">
+                        <h5 className="mb-2 text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+                            Generate Daily Attendance
+                        </h5>
+                        <p className="mb-3 font-normal text-gray-700 dark:text-gray-400">
+                            Process device logs and update daily attendance summary table.
+                        </p>
+
+                        <button
+                            onClick={handleGenerateDailyAttendance}
+                            disabled={dailyForm.processing}
+                            className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 rounded-md focus:outline-none disabled:bg-gray-400"
+                        >
+                            {dailyForm.processing ? 'Generating...' : 'Generate Attendance'}
+                        </button>
+                    </div>
+
 
                     {/* Send Attendance Report */}
                     <div className="max-w-sm p-6 bg-white border border-gray-200 rounded-lg shadow-sm dark:bg-gray-800 dark:border-gray-700">

@@ -72,5 +72,11 @@ class User extends Authenticatable
         return $this->hasMany(RepairRequest::class, 'employee_id', 'employee_id');
     }
 
+    public function dailyAttendances()
+    {
+        return $this->hasMany(DailyAttendance::class, 'employee_id', 'employee_id');
+    }
+
+
 
 }
