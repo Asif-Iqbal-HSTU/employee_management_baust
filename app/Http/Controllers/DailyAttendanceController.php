@@ -46,5 +46,88 @@ class DailyAttendanceController extends Controller
 
         return response()->json(['message' => 'Daily attendance generated']);
     }
+
+    public function calendar(Request $request)
+    {
+        $employeeId = auth()->user()->employee_id;
+
+        $month = $request->query('month', now()->format('Y-m'));
+
+        $start = Carbon::parse($month)->startOfMonth();
+        $end   = Carbon::parse($month)->endOfMonth();
+
+        // Get first and last entry per day
+        $logs = DeviceLog::selectRaw("
+            DATE(timestamp) as day,
+            MIN(timestamp) as first_in,
+            MAX(timestamp) as last_out
+        ")
+            ->where('employee_id', $employeeId)
+            ->whereBetween('timestamp', [$start, $end])
+            ->groupBy('day')
+            ->get();
+
+        // Get holidays for the month
+        $holidays = Holiday::whereBetween('date', [$start, $end])->pluck('date')->map(fn($d) => $d->format('Y-m-d'));
+
+        // Prepare events for FullCalendar
+        $events = [];
+
+        // Add attendance logs
+        foreach ($logs as $log) {
+            $day = $log->day;
+
+            // Determine status
+            $status = 'present';
+            $color  = '#16a34a'; // green
+
+            // Late rule → IN time after 9:15 AM
+            if ($log->first_in && Carbon::parse($log->first_in)->gt(Carbon::parse($day . ' 09:15:00'))) {
+                $status = 'late';
+                $color  = '#ca8a04'; // yellow
+            }
+
+            $events[] = [
+                'title' => "IN: " . Carbon::parse($log->first_in)->format('h:i A') .
+                    "\nOUT: " . Carbon::parse($log->last_out)->format('h:i A'),
+                'start' => $day,
+                'color' => $color,
+                'extendedProps' => [
+                    'status' => $status,
+                    'in' => $log->first_in,
+                    'out' => $log->last_out,
+                ]
+            ];
+        }
+
+        // Add holidays
+        foreach ($holidays as $h) {
+            $events[] = [
+                'title' => "Holiday",
+                'start' => $h,
+                'color' => '#0ea5e9', // blue
+            ];
+        }
+
+        // Mark absent days (no logs, not holiday)
+        $period = Carbon::parse($start)->daysUntil($end);
+
+        foreach ($period as $date) {
+            $d = $date->format('Y-m-d');
+            if (!in_array($d, $holidays) && !$logs->contains('day', $d)) {
+                $events[] = [
+                    'title' => "Absent",
+                    'start' => $d,
+                    'color' => '#dc2626', // red
+                ];
+            }
+        }
+
+        return Inertia::render('Attendance/Calendar', [
+            'events' => $events,
+            'month' => $month,
+        ]);
+    }
+
 }
 
