@@ -77,6 +77,11 @@ class User extends Authenticatable
         return $this->hasMany(DailyAttendance::class, 'employee_id', 'employee_id');
     }
 
+    public function leave()
+    {
+        return $this->hasMany(Leave::class, 'employee_id', 'employee_id');
+    }
+
 
 
 }

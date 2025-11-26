@@ -668,17 +668,6 @@ class AttendanceController extends Controller
     {
         $user = Auth::user();
         $department = Department::findOrFail($departmentId);
-        // ✅ get dept id from dept_heads table
-        /*$deptHead = DB::table('dept_heads')
-            ->where('employee_id', $user->employee_id)
-            ->first();
-
-        if (!$deptHead) {
-            abort(403, 'You are not a department head');
-        }*/
-
-//        $departmentId = $deptHead->department_id;
-
         $date = $request->input('date', \Carbon\Carbon::today()->toDateString());
 
         // ✅ fetch employees of this department

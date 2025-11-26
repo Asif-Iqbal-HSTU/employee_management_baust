@@ -50,7 +50,7 @@ export default function Attendance({ date, report, department }: Props) {
     const [selectedEmp, setSelectedEmp] = useState<ReportRow | null>(null);
     const [loading, setLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
-
+    console.log("HUDAI");
     const openEmployeeModal = async (emp: ReportRow) => {
         try {
             setLoading(true);
@@ -75,57 +75,6 @@ export default function Attendance({ date, report, department }: Props) {
                 emp.name.toLowerCase().includes(q)
         );
     }, [report, searchTerm]);
-
-    //const officeStartMinutes = useMemo(() => toMinutes(OFFICE_START) ?? 0, []);
-
-    // Late employees (in_time after office start)
-    /*const lateEmployees = useMemo(() => {
-        return report
-            .map((emp) => {
-                const mins = toMinutes(emp.in_time);
-                if (mins === null) return null; // Absent/no time
-                if (mins <= officeStartMinutes) return null;
-                const lateBy = mins - officeStartMinutes;
-                return { ...emp, late_by: fmtHHMM(lateBy) };
-            })
-            .filter(Boolean) as (ReportRow & { late_by: string })[];
-    }, [report, officeStartMinutes]);*/
-    /*const parseTime = (timeStr) => {
-        if (!timeStr) return null;
-        const [h, m, s] = timeStr.split(":").map(Number);
-        return h * 60 + m + s / 60; // minutes
-    };
-
-    const officeStartMinutes = parseTime(OFFICE_START);
-    const lateEmployees = report
-        .filter((emp) => emp.in_time && parseTime(emp.in_time) > officeStartMinutes)
-        .map((emp) => {
-            const lateByMin = parseTime(emp.in_time) - officeStartMinutes;
-            const hh = String(Math.floor(lateByMin / 60)).padStart(2, "0");
-            const mm = String(Math.floor(lateByMin % 60)).padStart(2, "0");
-            const ss = String(Math.floor(lateByMin % 60)).padStart(2, "0");
-            return { ...emp, late_by: `${hh}:${mm}:${ss}` };
-        });*/
-
-    // convert HH:MM:SS to total seconds
-    /*const parseTime = (time) => {
-        const [h, m, s] = time.split(":").map(Number);
-        return h * 3600 + m * 60 + (s || 0);
-    };
-
-    const officeStartSeconds = parseTime(OFFICE_START);
-
-    const lateEmployees = report
-        .filter((emp) => emp.in_time && parseTime(emp.in_time) > officeStartSeconds)
-        .map((emp) => {
-            const lateBySec = parseTime(emp.in_time) - officeStartSeconds;
-
-            const hh = String(Math.floor(lateBySec / 3600)).padStart(2, "0");
-            const mm = String(Math.floor((lateBySec % 3600) / 60)).padStart(2, "0");
-            const ss = String(lateBySec % 60).padStart(2, "0");
-
-            return { ...emp, late_by: `${hh}:${mm}:${ss}` };
-        });*/
 
     // parse HH:MM:SS into seconds
     const parseTime = (time?: string | null): number | null => {
@@ -177,12 +126,6 @@ export default function Attendance({ date, report, department }: Props) {
             return true;
         });
     }, [report]);
-
-    // Absent employees (controller sets in_time === "Absent")
-    /*const absentEmployees = useMemo(
-        () => report.filter((emp) => emp.in_time === "Absent"),
-        [report]
-    );*/
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>

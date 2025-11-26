@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\DailyAttendanceController;
+use App\Http\Controllers\LeaveController;
 use App\Http\Controllers\TimeAssignmentController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -12,6 +13,7 @@ use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\WorklogController;
 use App\Http\Controllers\RepairRequestController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\UserAssignmentController;
 
 Route::get('/', function () {
     return Inertia::render('welcome');
@@ -263,30 +265,23 @@ Route::get('/socket-check', function () {
     return function_exists('socket_create') ? 'Sockets Enabled' : 'Sockets Not Enabled';
 });
 
-
 Route::get('/device-attendance', [AttendanceController::class, 'deviceLogs'])->name('attendance.device');
 
 Route::post('/attendance/sync', [AttendanceController::class, 'syncDeviceLogs'])->name('attendance.sync');
-
 
 Route::post('/users/sync', [AttendanceController::class, 'syncUsersFromDevices'])->name('users.sync');
 
 Route::post('/logs/sync', [\App\Http\Controllers\DeviceLogController::class, 'syncRawLogs'])->name('logs.sync');
 Route::get('/attendance/report', [\App\Http\Controllers\DeviceLogController::class, 'generateReport'])->name('attendance.report');
 
-use App\Http\Controllers\UserAssignmentController;
-
 Route::get('/user-assignments', [UserAssignmentController::class, 'index'])->name('user-assignments.index');
 Route::post('/user-assignments', [UserAssignmentController::class, 'store'])->name('user-assignments.store');
-
 
 Route::get('/departments', [AttendanceController::class, 'departments'])->name('departments');
 Route::get('/departmentList', [AttendanceController::class, 'departmentList'])->name('departmentList');
 Route::get('/departments/{id}/monthly-report', [AttendanceController::class, 'monthlyReport'])->name('monthlyReport');
 Route::get('/departments/{deptId}/report', [AttendanceController::class, 'dateRangeReport'])
     ->name('departments.dateRangeReport');
-
-
 
 Route::get('/late-summary-report', [AttendanceController::class, 'showLateSummaryReport'])->name('late.summary.report');
 
@@ -301,9 +296,39 @@ Route::post('/worklog', [WorklogController::class, 'store'])->name('worklog.stor
 Route::get('/departments/{id}/employees', [WorklogController::class, 'showEmployees'])->name('departments.employees');
 Route::get('/employees/{employeeId}/worklogs', [WorklogController::class, 'getEmployeeWorklogs'])->name('employees.worklogs');
 
-
 Route::post('/daily-attendance/generate', [DailyAttendanceController::class, 'generateDailyAttendance'])
     ->name('daily.generate');
+
+Route::get('/leave-management', [LeaveController::class, 'index'])->name('leave.index');
+Route::post('/leave-management/request', [LeaveController::class, 'store'])->name('leave.request');
+
+Route::middleware(['auth', 'verified'])->group(function () {
+
+    Route::get('/dept-head/leaves', [LeaveController::class, 'indexHead'])
+        ->name('deptHead.leaves');
+
+    Route::post('/dept-head/leaves/{id}/approve', [LeaveController::class, 'approveByHead'])
+        ->name('deptHead.leaves.approve');
+
+    Route::post('/dept-head/leaves/{id}/deny', [LeaveController::class, 'denyByHead'])
+        ->name('deptHead.leaves.deny');
+});
+
+use App\Http\Controllers\RegistrarLeaveController;
+
+Route::middleware(['auth', 'verified'])->group(function () {
+
+    // Registrar Leave Panel
+    Route::get('/registrar/leave-requests', [RegistrarLeaveController::class, 'index'])
+        ->name('registrar.leave.index');
+
+    Route::post('/registrar/leave-requests/{id}/approve', [RegistrarLeaveController::class, 'approve'])
+        ->name('registrar.leave.approve');
+
+    Route::post('/registrar/leave-requests/{id}/deny', [RegistrarLeaveController::class, 'deny'])
+        ->name('registrar.leave.deny');
+});
+
 
 
 Route::middleware(['auth'])->group(function () {

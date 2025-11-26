@@ -20,6 +20,7 @@ export function AppSidebar() {
         mainNavItems.push(
             { title: 'My Department Attendance', href: '/dept-head/attendance', icon: CalendarClock },
             { title: 'Time Assignment', href: '/time-assignments', icon: Clock },
+            { title: 'Leaves Requested', href: '/dept-head/leaves', icon: Clock },
         );
     }
 
@@ -34,7 +35,15 @@ export function AppSidebar() {
         mainNavItems.push(
             { title: 'All Departments', href: '/departments', icon: Logs },
             { title: 'Late Summary Report', href: '/late-summary-report', icon: Logs },
-            { title: 'Monthly Report', href: '/departmentList', icon: Calendar }
+            { title: 'Monthly Report', href: '/departmentList', icon: Calendar },
+            { title: 'Leave Req Finalization', href: '/registrar/leave-requests', icon: Calendar }
+        );
+    }
+
+    if (authUser?.employee_id == 23033) {
+        mainNavItems.push(
+            { title: 'All Departments', href: '/departments', icon: Logs },
+            { title: 'Late Summary Report', href: '/late-summary-report', icon: Logs },
         );
     }
 
@@ -79,6 +88,7 @@ export function AppSidebar() {
     // }
 
     mainNavItems.push(
+        { title: 'Leave Management', href: '/leave-management', icon: Calendar },
         { title: 'Worklog', href: '/worklog', icon: Calendar },
         { title: 'My Repair Requests', href: '/repair-requests', icon: FileSliders },
         { title: 'Request a Repair', href: '/repair-requests/create', icon: MonitorCog }

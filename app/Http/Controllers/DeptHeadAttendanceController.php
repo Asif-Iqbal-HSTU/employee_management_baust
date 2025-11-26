@@ -9,22 +9,9 @@ use Carbon\Carbon;
 
 class DeptHeadAttendanceController extends Controller
 {
-    public function index(Request $request)
+    public function index0(Request $request)
     {
         $user = Auth::user();
-
-        // ✅ get dept id from dept_heads table
- /*       $deptHead = DB::table('dept_heads')
-            ->where('employee_id', $user->employee_id)
-            ->first();
-
-        if (!$deptHead) {
-            abort(403, 'You are not a department head');
-        }
-
-//        $departmentId = $deptHead->department_id;
-        $departmentId   = $deptHead->department_id;
-        $departmentName = $deptHead->department->dept_name;*/
 
         $deptHead = DB::table('dept_heads')
             ->join('departments', 'dept_heads.department_id', '=', 'departments.id')
@@ -87,6 +74,79 @@ class DeptHeadAttendanceController extends Controller
             'report'     => $report,
         ]);
     }
+
+    public function index(Request $request)
+    {
+        $user = Auth::user();
+
+//        dd($user);
+
+        // --- 1️⃣ Check if user is department head ---
+        $deptHead = DB::table('dept_heads')
+            ->join('departments', 'dept_heads.department_id', '=', 'departments.id')
+            ->where('dept_heads.employee_id', $user->employee_id)
+            ->select('dept_heads.*', 'departments.dept_name')
+            ->first();
+
+        if (!$deptHead) {
+            abort(403, 'You are not a department head');
+        }
+
+        $departmentId   = $deptHead->department_id;
+        $departmentName = $deptHead->dept_name;
+
+        $date = $request->input('date', Carbon::today()->toDateString());
+
+        // --- 2️⃣ Get employees of this department ---
+        $employees = DB::table('users')
+            ->join('user_assignments', 'users.employee_id', '=', 'user_assignments.employee_id')
+            ->leftJoin('designations', 'designations.id', '=', 'user_assignments.designation_id')
+            ->where('user_assignments.department_id', $departmentId)
+            ->select('users.employee_id', 'users.name', 'designations.designation_name as designation')
+            ->get();
+
+        $report = [];
+
+        foreach ($employees as $employee) {
+
+            // --- 3️⃣ Fetch DailyAttendance record ---
+            $attendance = \App\Models\DailyAttendance::where('employee_id', $employee->employee_id)
+                ->where('date', $date)
+                ->first();
+
+            // If exists, extract in/out time
+            $inTime  = $attendance?->in_time;
+            $outTime = $attendance?->out_time;
+
+            // --- 4️⃣ Fetch allowed entry time (user schedule) ---
+            $assignment = DB::table('time_assignments')
+                ->where('employee_id', $employee->employee_id)
+                ->first();
+
+            $allowedEntry = $assignment?->allowed_entry;
+
+            // --- 5️⃣ Build row ---
+            $report[] = [
+                'employee_id'   => $employee->employee_id,
+                'name'          => $employee->name,
+                'designation'   => $employee->designation,
+                'in_time'       => $inTime,
+                'out_time'      => $outTime,
+                'allowed_entry' => $allowedEntry,
+            ];
+        }
+
+        //dd($report);
+        return inertia('DeptHead/Attendance', [
+            'date' => $date,
+            'department' => [
+                'id'   => $departmentId,
+                'name' => $departmentName,
+            ],
+            'report' => $report,
+        ]);
+    }
+
 
     // app/Http/Controllers/DeptHeadAttendanceController.php
     public function employeeMonthly(Request $request, $employeeId)

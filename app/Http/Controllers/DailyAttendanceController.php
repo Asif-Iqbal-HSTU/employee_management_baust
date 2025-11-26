@@ -23,13 +23,13 @@ class DailyAttendanceController extends Controller
 
         foreach ($records as $r) {
 
-            $in  = Carbon::parse($r->in_time)->format('H:i');
-            $out = Carbon::parse($r->out_time)->format('H:i');
+            $in  = Carbon::parse($r->in_time)->format('H:i:s');
+            $out = Carbon::parse($r->out_time)->format('H:i:s');
 
             // Status calculation
             $status = [];
-            if ($in > '08:00')  $status[] = 'late entry';
-            if ($out < '14:30') $status[] = 'early leave';
+            if ($in > '08:00:00')  $status[] = 'late entry';
+            if ($out < '14:30:00') $status[] = 'early leave';
 
             DailyAttendance::updateOrCreate(
                 [
