@@ -126,7 +126,7 @@ class SendDepartmentAttendanceReport extends Command
 
                 if ($firstLog) {
                     $inTime = Carbon::parse($firstLog->timestamp)->format('H:i:s');
-                    if ($inTime > '08:00:00') {
+                    if ($inTime > '08:30:00') {
                         $lateCount++;
                         // Create a copy of employee data with in_time property
                         $empWithInTime = (object) array_merge((array) $employee, ['in_time' => $inTime]);

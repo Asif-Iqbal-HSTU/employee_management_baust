@@ -1,7 +1,9 @@
 <?php
 
 use App\Http\Controllers\DailyAttendanceController;
+use App\Http\Controllers\IssueVoucherController;
 use App\Http\Controllers\LeaveController;
+use App\Http\Controllers\StoreCategoryController;
 use App\Http\Controllers\TimeAssignmentController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -339,8 +341,14 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/repair-requests/{repairRequest}/edit', [RepairRequestController::class, 'edit'])->name('repair.edit');
     Route::put('/repair-requests/{repairRequest}', [RepairRequestController::class, 'update'])->name('repair.update');
     Route::get('/repair/{id}/view', [RepairRequestController::class, 'view'])->name('repair.view');
+});
 
-
+Route::middleware(['auth'])->group(function () {
+    Route::get('/requisitions', [IssueVoucherController::class, 'index'])->name('voucher.index');
+    Route::post('/requisitions-create', [IssueVoucherController::class, 'create'])->name('voucher.create');
+    Route::get('/categories', [StoreCategoryController::class, 'index'])->name('category.index');
+    Route::get('/category/products/{id}', [StoreCategoryController::class, 'products'])->name('store.products');
+    Route::post('/categories-create', [StoreCategoryController::class, 'create'])->name('category.create');
 });
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';
