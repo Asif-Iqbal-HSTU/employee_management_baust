@@ -28,7 +28,7 @@ class DailyAttendanceController extends Controller
 
             // Status calculation
             $status = [];
-            if ($in > '08:00:00')  $status[] = 'late entry';
+            if ($in > '08:30:00')  $status[] = 'late entry';
             if ($out < '14:30:00') $status[] = 'early leave';
 
             DailyAttendance::updateOrCreate(

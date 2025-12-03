@@ -149,8 +149,8 @@ class DeviceLogController extends Controller
 
                 // Status calculation
                 $status = [];
-                if ($in > '08:00') $status[] = 'late entry';
-                if ($out < '14:30') $status[] = 'early leave';
+                if ($in > '08:30:00') $status[] = 'late entry';
+                if ($out < '14:30:00') $status[] = 'early leave';
 
                 \App\Models\DailyAttendance::updateOrCreate(
                     ['employee_id' => $empId, 'date' => $date],
