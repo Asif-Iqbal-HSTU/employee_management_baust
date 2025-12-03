@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\DailyAttendance;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -9,10 +10,11 @@ use Carbon\Carbon;
 
 class DeptHeadAttendanceController extends Controller
 {
-    public function index0(Request $request)
+    public function index(Request $request)
     {
         $user = Auth::user();
 
+        // 1️⃣ Verify department head
         $deptHead = DB::table('dept_heads')
             ->join('departments', 'dept_heads.department_id', '=', 'departments.id')
             ->where('dept_heads.employee_id', $user->employee_id)
@@ -28,7 +30,7 @@ class DeptHeadAttendanceController extends Controller
 
         $date = $request->input('date', Carbon::today()->toDateString());
 
-        // ✅ fetch employees of this department
+        // 2️⃣ Get employees of this department
         $employees = DB::table('users')
             ->join('user_assignments', 'users.employee_id', '=', 'user_assignments.employee_id')
             ->leftJoin('designations', 'designations.id', '=', 'user_assignments.designation_id')
@@ -36,116 +38,58 @@ class DeptHeadAttendanceController extends Controller
             ->select('users.employee_id', 'users.name', 'designations.designation_name as designation')
             ->get();
 
+        // 3️⃣ Build report USING DailyAttendance table
         $report = [];
 
-        foreach ($employees as $employee) {
-            $logs = DB::table('device_logs')
-                ->where('employee_id', $employee->employee_id)
-                ->whereDate('timestamp', $date)
-                ->orderBy('timestamp')
-                ->pluck('timestamp');
-
-            $inTime = $logs->count() > 0 ? Carbon::parse($logs->first())->format('H:i:s') : '';
-            $outTime = $logs->count() > 1 ? Carbon::parse($logs->last())->format('H:i:s') : '';
-
-            $assignment = DB::table('time_assignments')
-                ->where('employee_id', $employee->employee_id)
+        foreach ($employees as $emp) {
+            $attendance = DailyAttendance::where('employee_id', $emp->employee_id)
+                ->where('date', $date)
                 ->first();
 
-            $allowedEntry = $assignment?->allowed_entry; // e.g. "09:00:00"
-
-
             $report[] = [
-                'employee_id' => $employee->employee_id,
-                'name'        => $employee->name,
-                'designation' => $employee->designation,
-                'in_time'       => $inTime ?: null,   // no "Absent" string here
-                'out_time'      => $outTime ?: null,
-                'allowed_entry' => $allowedEntry, // <-- send to frontend
+                'employee_id' => $emp->employee_id,
+                'name'        => $emp->name,
+                'designation' => $emp->designation,
+                'in_time'     => $attendance?->in_time ?? null,
+                'out_time'    => $attendance?->out_time ?? null,
+                'status'      => $attendance?->status ?? null,   // 👈 USING DB STATUS
+                'remarks'     => $attendance?->remarks ?? null,   // 👈 USING DB STATUS
             ];
         }
 
         return inertia('DeptHead/Attendance', [
             'date'       => $date,
-            'department' => [
-                'id'   => $departmentId,
-                'name' => $departmentName,
-            ],
+            'department' => ['id' => $departmentId, 'name' => $departmentName],
             'report'     => $report,
         ]);
     }
 
-    public function index(Request $request)
+    // app/Http/Controllers/DeptHeadController.php
+    public function updateStatus(Request $request)
     {
-        $user = Auth::user();
+        $request->validate([
+            'employee_id' => 'required|string',
+            'date'        => 'required|date',
+            'status'      => 'required|string',
+            'remarks'     => 'nullable|string',
+        ]);
 
-//        dd($user);
-
-        // --- 1️⃣ Check if user is department head ---
-        $deptHead = DB::table('dept_heads')
-            ->join('departments', 'dept_heads.department_id', '=', 'departments.id')
-            ->where('dept_heads.employee_id', $user->employee_id)
-            ->select('dept_heads.*', 'departments.dept_name')
+        $attendance = \App\Models\DailyAttendance::where('employee_id', $request->employee_id)
+            ->where('date', $request->date)
             ->first();
 
-        if (!$deptHead) {
-            abort(403, 'You are not a department head');
+        if (!$attendance) {
+            return back()->with('error', 'Attendance record not found.');
         }
 
-        $departmentId   = $deptHead->department_id;
-        $departmentName = $deptHead->dept_name;
+        $attendance->status  = $request->status;
+        $attendance->remarks = $request->remarks;
+        $attendance->save();
 
-        $date = $request->input('date', Carbon::today()->toDateString());
-
-        // --- 2️⃣ Get employees of this department ---
-        $employees = DB::table('users')
-            ->join('user_assignments', 'users.employee_id', '=', 'user_assignments.employee_id')
-            ->leftJoin('designations', 'designations.id', '=', 'user_assignments.designation_id')
-            ->where('user_assignments.department_id', $departmentId)
-            ->select('users.employee_id', 'users.name', 'designations.designation_name as designation')
-            ->get();
-
-        $report = [];
-
-        foreach ($employees as $employee) {
-
-            // --- 3️⃣ Fetch DailyAttendance record ---
-            $attendance = \App\Models\DailyAttendance::where('employee_id', $employee->employee_id)
-                ->where('date', $date)
-                ->first();
-
-            // If exists, extract in/out time
-            $inTime  = $attendance?->in_time;
-            $outTime = $attendance?->out_time;
-
-            // --- 4️⃣ Fetch allowed entry time (user schedule) ---
-            $assignment = DB::table('time_assignments')
-                ->where('employee_id', $employee->employee_id)
-                ->first();
-
-            $allowedEntry = $assignment?->allowed_entry;
-
-            // --- 5️⃣ Build row ---
-            $report[] = [
-                'employee_id'   => $employee->employee_id,
-                'name'          => $employee->name,
-                'designation'   => $employee->designation,
-                'in_time'       => $inTime,
-                'out_time'      => $outTime,
-                'allowed_entry' => $allowedEntry,
-            ];
-        }
-
-        //dd($report);
-        return inertia('DeptHead/Attendance', [
-            'date' => $date,
-            'department' => [
-                'id'   => $departmentId,
-                'name' => $departmentName,
-            ],
-            'report' => $report,
-        ]);
+        return back()->with('success', 'Attendance updated successfully.');
     }
+
+
 
 
     // app/Http/Controllers/DeptHeadAttendanceController.php

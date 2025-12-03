@@ -80,4 +80,28 @@ class DashboardController extends Controller
             'year'         => $year,
         ]);
     }
+
+    public function employeeCalendar(Request $request, $employeeId)
+    {
+        $month = $request->input('month', now()->month);
+        $year  = $request->input('year', now()->year);
+
+        $calendarLogs = DailyAttendance::where('employee_id', $employeeId)
+            ->whereMonth('date', $month)
+            ->whereYear('date', $year)
+            ->get()
+            ->keyBy('date');
+
+        $holidays2025 = Holiday::get()->mapWithKeys(function ($h) {
+            return [Carbon::parse($h->date)->format('Y-m-d') => $h->name ?: 'Holiday'];
+        })->toArray();
+
+        return response()->json([
+            'calendarLogs' => $calendarLogs,
+            'holidays2025' => $holidays2025,
+            'month' => $month,
+            'year' => $year
+        ]);
+    }
+
 }

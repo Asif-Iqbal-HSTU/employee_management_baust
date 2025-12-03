@@ -4,6 +4,7 @@ use App\Http\Controllers\DailyAttendanceController;
 use App\Http\Controllers\IssueVoucherController;
 use App\Http\Controllers\LeaveController;
 use App\Http\Controllers\StoreCategoryController;
+use App\Http\Controllers\StoreProductController;
 use App\Http\Controllers\TimeAssignmentController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -248,6 +249,14 @@ Route::middleware(['auth'])->group(function () {
 //    Route::get('/dept-head/employee/{employeeId}/monthly', [DeptHeadAttendanceController::class, 'employeeMonthly'])
 //        ->name('depthead.employee.monthly');
 
+    // routes/web.php
+    Route::post('/dept-head/attendance/update-status', [DeptHeadAttendanceController::class, 'updateStatus'])
+        ->name('dept.updateStatus');
+
+
+    Route::get('/employee/{employeeId}/calendar', [DashboardController::class, 'employeeCalendar'])
+        ->name('employee.calendar');
+
     Route::get('/departments/{id}/attendance', [AttendanceController::class, 'show'])
         ->name('departments.attendance');
 
@@ -349,6 +358,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/categories', [StoreCategoryController::class, 'index'])->name('category.index');
     Route::get('/category/products/{id}', [StoreCategoryController::class, 'products'])->name('store.products');
     Route::post('/categories-create', [StoreCategoryController::class, 'create'])->name('category.create');
+    Route::post('/store-products', [StoreProductController::class, 'store'])
+        ->name('store.products.store');
+
 });
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';

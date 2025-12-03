@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\DailyAttendance;
 use App\Models\Department;
 use App\Models\Designation;
 use App\Models\DeviceLog;
@@ -555,7 +556,7 @@ class AttendanceController extends Controller
         ]);
     }*/
 
-    public function departments()
+    public function departments0()
     {
         $departments = Department::all();
 
@@ -653,6 +654,87 @@ class AttendanceController extends Controller
         ]);
     }
 
+    public function departments()
+    {
+        $departments = Department::all();
+
+        // === Determine last 7 working days ===
+        $dates = collect();
+        $today = now()->toDateString();
+        $cursor = now()->copy();
+
+        while ($dates->count() < 7) {
+            $cursor->subDay();
+            $dow = $cursor->dayOfWeekIso;
+
+            // Exclude Fri(5) & Sat(6)
+            if (!in_array($dow, [5, 6])) {
+                $dates->push($cursor->toDateString());
+            }
+        }
+
+        $dates = $dates->sort()->values(); // ascending order
+
+        // === Build Department Summaries ===
+        $deptSummaries = [];
+
+        foreach ($departments as $dept) {
+
+            // Employees in this department
+            $employees = DB::table('users')
+                ->join('user_assignments', 'users.employee_id', '=', 'user_assignments.employee_id')
+                ->where('user_assignments.department_id', $dept->id)
+                ->pluck('users.employee_id');
+
+            $totalEmployees = $employees->count();
+
+            // === TODAY SUMMARY (using DailyAttendance model) ===
+            $todayLogs = DailyAttendance::whereIn('employee_id', $employees)
+                ->where('date', $today)
+                ->get();
+
+            $lateToday = $todayLogs->filter(fn($log) => str_contains($log->status, 'late entry'))->count();
+            $presentToday = $todayLogs->count();
+            $absentToday = $totalEmployees - $presentToday;
+
+            $todaySummary = [
+                'total'  => $totalEmployees,
+                'late'   => $lateToday,
+                'absent' => $absentToday,
+            ];
+
+            // === LAST 7 WORKING DAYS SUMMARY ===
+            $graph = [];
+
+            foreach ($dates as $d) {
+                $logs = DailyAttendance::whereIn('employee_id', $employees)
+                    ->where('date', $d)
+                    ->get();
+
+                $lateCount = $logs->filter(fn($log) => str_contains($log->status, 'late'))->count();
+                $presentCount = $logs->count();
+                $absentCount = $totalEmployees - $presentCount;
+
+                $graph[] = [
+                    'date'   => $d,
+                    'absent' => $absentCount,
+                    'late'   => $lateCount,
+                ];
+            }
+
+            $deptSummaries[$dept->id] = [
+                'today' => $todaySummary,
+                'graph' => $graph,
+            ];
+        }
+
+        return inertia('Departments/deptList', [
+            'departments' => $departments,
+            'attendance'  => $deptSummaries,
+        ]);
+    }
+
+
     public function departmentList()
     {
         $departments = Department::all();
@@ -664,7 +746,7 @@ class AttendanceController extends Controller
 
 
 
-    public function show(Request $request, $departmentId)
+    public function show0(Request $request, $departmentId)
     {
         $user = Auth::user();
         $department = Department::findOrFail($departmentId);
@@ -714,6 +796,49 @@ class AttendanceController extends Controller
                 'id'   => $department->id,
                 'name' => $department->dept_name,
             ],
+        ]);
+    }
+
+    public function show(Request $request, $departmentId)
+    {
+        $user = Auth::user();
+        $department = Department::findOrFail($departmentId);
+//        $date = $request->input('date', \Carbon\Carbon::today()->toDateString());
+//        $departmentId   = $department->department_id;
+        $departmentName = $department->dept_name;
+
+        $date = $request->input('date', \Carbon\Carbon::today()->toDateString());
+
+        // 2️⃣ Get employees of this department
+        $employees = DB::table('users')
+            ->join('user_assignments', 'users.employee_id', '=', 'user_assignments.employee_id')
+            ->leftJoin('designations', 'designations.id', '=', 'user_assignments.designation_id')
+            ->where('user_assignments.department_id', $departmentId)
+            ->select('users.employee_id', 'users.name', 'designations.designation_name as designation')
+            ->get();
+
+        // 3️⃣ Build report USING DailyAttendance table
+        $report = [];
+
+        foreach ($employees as $emp) {
+            $attendance = DailyAttendance::where('employee_id', $emp->employee_id)
+                ->where('date', $date)
+                ->first();
+
+            $report[] = [
+                'employee_id' => $emp->employee_id,
+                'name'        => $emp->name,
+                'designation' => $emp->designation,
+                'in_time'     => $attendance?->in_time ?? null,
+                'out_time'    => $attendance?->out_time ?? null,
+                'status'      => $attendance?->status ?? null,   // 👈 USING DB STATUS
+            ];
+        }
+
+        return inertia('Departments/Attendance', [
+            'date'       => $date,
+            'department' => ['id' => $departmentId, 'name' => $departmentName],
+            'report'     => $report,
         ]);
     }
 
