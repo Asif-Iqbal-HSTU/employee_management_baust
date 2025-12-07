@@ -75,7 +75,7 @@ export default function Leave({ leaves, remainingCasual, remainingMedical }: any
                         </select>
 
                         {/* Leave Date */}
-                        <label className="block mb-2 text-sm font-medium">Date</label>
+                        <label className="block mb-2 text-sm font-medium">Start Date</label>
                         <input
                             type="date"
                             value={startdate}
@@ -83,7 +83,7 @@ export default function Leave({ leaves, remainingCasual, remainingMedical }: any
                             className="w-full border rounded p-2 mb-4"
                         />
 
-                        <label className="block mb-2 text-sm font-medium">Date</label>
+                        <label className="block mb-2 text-sm font-medium">End Date</label>
                         <input
                             type="date"
                             value={enddate}

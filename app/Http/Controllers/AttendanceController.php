@@ -192,7 +192,7 @@ class AttendanceController extends Controller
 
                 if ($firstLog) {
                     $inTime = Carbon::parse($firstLog->timestamp)->format('H:i:s');
-                    if ($inTime > '08:00:00') {
+                    if ($inTime > '08:30:00') {
                         $lateCount++;
                         // keep employee object + in_time
                         $empWithInTime = (object) array_merge((array) $employee, ['in_time' => $inTime]);
@@ -832,6 +832,7 @@ class AttendanceController extends Controller
                 'in_time'     => $attendance?->in_time ?? null,
                 'out_time'    => $attendance?->out_time ?? null,
                 'status'      => $attendance?->status ?? null,   // 👈 USING DB STATUS
+                'remarks'     => $attendance?->remarks ?? null,
             ];
         }
 

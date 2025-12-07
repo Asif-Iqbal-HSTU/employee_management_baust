@@ -178,6 +178,24 @@ export default function SyncLogs() {
                             Pulls user list from all ZKTeco devices.
                         </p>
                     </div>
+
+                    {/* Attendance Matrix Report */}
+                    <div className="max-w-sm p-6 bg-white border border-gray-200 rounded-lg shadow-sm dark:bg-gray-800 dark:border-gray-700">
+                        <h5 className="mb-2 text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+                            Officer/Faculty Attendance Matrix
+                        </h5>
+                        <p className="mb-3 font-normal text-gray-700 dark:text-gray-400">
+                            Generate monthly or range-wise attendance matrix for faculty & officers.
+                        </p>
+
+                        <Link
+                            href={route('attendance.matrix.form')}
+                            className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md"
+                        >
+                            Open Report
+                        </Link>
+                    </div>
+
                 </div>
             </div>
         </AppLayout>

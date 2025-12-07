@@ -44,6 +44,43 @@ class DashboardController extends Controller
 
         $holidayDates = array_keys($holidays2025);
 
+//ABSENCE COUNT
+// Generate all working days up to TODAY only
+        $startOfMonth = Carbon::create($year, $month, 1);
+        $endLimit = now()->toDateString(); // today's date
+
+        $allDates = [];
+        $current = $startOfMonth->copy();
+
+        while ($current->toDateString() <= $endLimit) {
+
+            // Skip Friday (5) & Saturday (6)
+            if (!in_array($current->dayOfWeek, [5, 6])) {
+
+                // Skip holidays
+                if (!in_array($current->format('Y-m-d'), $holidayDates)) {
+                    $allDates[] = $current->format('Y-m-d');
+                }
+            }
+
+            $current->addDay();
+        }
+
+// Fetch all attendance dates for this month
+        $attendanceDates = DailyAttendance::where('employee_id', $employeeId)
+            ->whereMonth('date', $month)
+            ->whereYear('date', $year)
+            ->whereDate('date', '<=', $endLimit)
+            ->pluck('date')
+            ->map(fn ($d) => Carbon::parse($d)->format('Y-m-d'))
+            ->toArray();
+
+// Calculate absences using date difference
+        $absenceCount = collect($allDates)
+            ->diff($attendanceDates)
+            ->count();
+
+
         // Summary counts
         $summary = [
             'late' => DailyAttendance::where('employee_id', $employeeId)
@@ -62,11 +99,14 @@ class DashboardController extends Controller
                 ->whereRaw('WEEKDAY(date) NOT IN (4,5)')
                 ->count(),
 
-            'absence' => DailyAttendance::where('employee_id', $employeeId)
+            /*'absence' => DailyAttendance::where('employee_id', $employeeId)
                 ->whereMonth('date', $month)
                 ->whereYear('date', $year)
-                ->where('status', 'absent')
-                ->count(),
+                ->where('in_time', NULL)
+                ->where('out_time', NULL)
+                ->count(),*/
+
+            'absence' => $absenceCount,
         ];
 
         return Inertia::render('dashboard2', [

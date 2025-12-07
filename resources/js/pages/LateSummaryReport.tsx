@@ -172,26 +172,6 @@ export default function LateSummaryReport({ date, summaryTable, lateDetails, abs
                         </div>
                     ))}
 
-                    {/* Notices */}
-                    <div className="mt-8 rounded border bg-gray-100 p-3 text-sm">
-                        <p>
-                            <i>
-                                Some employees are assigned to late hours. They may appear as late/not-present if no data was recorded in the device
-                                before report generation.
-                            </i>
-                        </p>
-                    </div>
-
-                    <div className="mt-3 rounded border bg-gray-100 p-3 text-sm">
-                        <p>
-                            <i>
-                                The following persons have duplicate ID issues (data under review): Md. Mahadi Hasan (CSE), Md. Yah-Ya Ul Haque (EEE),
-                                Sifat Hossain (EEE), Md. Mahmudul Hasan (ME), Md. Shahadat Hossain (DBA), Azra Sultana Sadia (EEE), and Md. Mominul
-                                Hoque (Registrar Office).
-                            </i>
-                        </p>
-                    </div>
-
                     <footer className="mt-8 text-center text-xs text-gray-500">Powered By: ICT Wing & Archive, BAUST</footer>
                 </div>
             </div>

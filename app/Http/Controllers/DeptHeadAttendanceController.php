@@ -71,7 +71,32 @@ class DeptHeadAttendanceController extends Controller
             'employee_id' => 'required|string',
             'date'        => 'required|date',
             'status'      => 'required|string',
-            'remarks'     => 'nullable|string',
+            'remarks'     => 'required|nullable|string',
+        ]);
+
+        $attendance = \App\Models\DailyAttendance::where('employee_id', $request->employee_id)
+            ->where('date', $request->date)
+            ->first();
+
+        if (!$attendance) {
+            return back()->with('error', 'Attendance record not found.');
+        }
+
+        $attendance->status  = $request->status;
+        $attendance->remarks = $request->remarks;
+        $attendance->save();
+
+        return back()->with('success', 'Attendance updated successfully.');
+    }
+
+
+    public function updateAbsentStatus(Request $request)
+    {
+        $request->validate([
+            'employee_id' => 'required|string',
+            'date'        => 'required|date',
+            'status'      => 'required|string',
+            'remarks'     => 'required|nullable|string',
         ]);
 
         $attendance = \App\Models\DailyAttendance::where('employee_id', $request->employee_id)

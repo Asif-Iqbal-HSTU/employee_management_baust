@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AttendanceMatrixController;
 use App\Http\Controllers\DailyAttendanceController;
 use App\Http\Controllers\IssueVoucherController;
 use App\Http\Controllers\LeaveController;
@@ -253,6 +254,9 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/dept-head/attendance/update-status', [DeptHeadAttendanceController::class, 'updateStatus'])
         ->name('dept.updateStatus');
 
+    Route::post('/dept-head/attendance/update-status/absent', [DeptHeadAttendanceController::class, 'updateAbsentStatus'])
+        ->name('dept.updateStatus');
+
 
     Route::get('/employee/{employeeId}/calendar', [DashboardController::class, 'employeeCalendar'])
         ->name('employee.calendar');
@@ -362,5 +366,21 @@ Route::middleware(['auth'])->group(function () {
         ->name('store.products.store');
 
 });
+
+Route::get('/attendance/matrix', [AttendanceMatrixController::class, 'form'])
+    ->name('attendance.matrix.form');
+
+Route::post('/attendance/matrix/generate', [AttendanceMatrixController::class, 'generate'])
+    ->name('attendance.matrix.generate');
+
+Route::get('/attendance/matrix/pdf', [AttendanceMatrixController::class, 'pdf'])
+    ->name('attendance.matrix.pdf');
+
+Route::post('/attendance/summary/generate', [AttendanceMatrixController::class, 'summaryGenerate'])
+    ->name('attendance.summary.generate');
+
+Route::get('/attendance/summary/pdf', [AttendanceMatrixController::class, 'summaryPdf'])
+    ->name('attendance.summary.pdf');
+
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';

@@ -25,5 +25,13 @@ class UserAssignment extends Model
     {
         return $this->belongsTo(Designation::class);
     }
+
+    public function scopeOfficerFaculty($query)
+    {
+        return $query->whereHas('designation', function($q){
+            $q->where('is_officer_faculty', true);
+        });
+    }
+
 }
 

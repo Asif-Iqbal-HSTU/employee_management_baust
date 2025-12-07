@@ -30,6 +30,7 @@ class DailyAttendanceController extends Controller
             $status = [];
             if ($in > '08:30:00')  $status[] = 'late entry';
             if ($out < '14:30:00') $status[] = 'early leave';
+            if ($in == '' && $out == '') $status[] = 'absent';
 
             DailyAttendance::updateOrCreate(
                 [

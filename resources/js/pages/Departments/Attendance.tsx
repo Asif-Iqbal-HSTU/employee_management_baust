@@ -13,6 +13,7 @@ type ReportRow = {
     designation: string | null;
     in_time: string | null;
     out_time: string | null;
+    remarks: string | null;
     status: string | null;
     allowed_entry?: string | null;
 };
@@ -81,8 +82,12 @@ export default function Attendance({ date, report, department }: Props) {
         emp.status && emp.status.includes('early leave')
     );
 
-    const absentEmployees = report.filter((emp) => emp.in_time === null);
+    const absentEmployees = report.filter((emp) => emp.in_time === null && !emp.status);
 
+    const leaveEmployees = report.filter((emp) => emp.status && emp.status.includes('On Leave'));
+
+    const rescheduledEmployees = report.filter((emp) => emp.status && emp.status.includes('rescheduled'));
+    console.log(rescheduledEmployees);
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Department Attendance" />
@@ -92,7 +97,7 @@ export default function Attendance({ date, report, department }: Props) {
                 <h2 className="mb-6 text-xl font-bold">Date: {date}</h2>
 
                 {/* ----------- SUMMARY ----------- */}
-                <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+                <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
 
                     {/* LATE EMPLOYEES */}
                     <div className="rounded-lg bg-white p-4 shadow">
@@ -106,6 +111,7 @@ export default function Attendance({ date, report, department }: Props) {
                                     <th className="border px-2 py-1">ID</th>
                                     <th className="border px-2 py-1">Name</th>
                                     <th className="border px-2 py-1">In Time</th>
+                                    <th className="border px-2 py-1">Remarks</th>
                                 </tr>
                                 </thead>
                                 <tbody>
@@ -114,6 +120,7 @@ export default function Attendance({ date, report, department }: Props) {
                                         <td className="border px-2 py-1">{emp.employee_id}</td>
                                         <td className="border px-2 py-1">{emp.name}</td>
                                         <td className="border px-2 py-1">{emp.in_time}</td>
+                                        <td className="border px-2 py-1">{emp.remarks}</td>
                                     </tr>
                                 ))}
                                 </tbody>
@@ -169,6 +176,70 @@ export default function Attendance({ date, report, department }: Props) {
                                 <tbody>
                                 {absentEmployees.map((emp) => (
                                     <tr key={emp.employee_id} className="hover:bg-gray-50">
+                                        <td className="border px-2 py-1">{emp.employee_id}</td>
+                                        <td className="border px-2 py-1">{emp.name}</td>
+                                        <td className="border px-2 py-1">{emp.designation}</td>
+                                    </tr>
+                                ))}
+                                </tbody>
+                            </table>
+                        ) : (
+                            <p className="text-gray-500">No absent employees</p>
+                        )}
+                    </div>
+
+                    {/* Rescheduled EMPLOYEES */}
+                    <div className="rounded-lg bg-white p-4 shadow">
+                        <h2 className="mb-3 text-lg font-semibold">Rescheduled Employees ({rescheduledEmployees.length})</h2>
+                        {rescheduledEmployees.length > 0 ? (
+                            <table className="w-full border border-gray-300 text-sm">
+                                <thead>
+                                <tr className="bg-gray-100">
+                                    <th className="border px-2 py-1">ID</th>
+                                    <th className="border px-2 py-1">Name</th>
+                                    <th className="border px-2 py-1">Designation</th>
+                                    <th className="border px-2 py-1">Remarks</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                {rescheduledEmployees.map((emp) => (
+                                    <tr
+                                        key={emp.employee_id}
+                                        // onClick={() => openAbsentEmployeeModal(emp)}
+                                        className="hover:bg-gray-50"
+                                    >
+                                        <td className="border px-2 py-1">{emp.employee_id}</td>
+                                        <td className="border px-2 py-1">{emp.name}</td>
+                                        <td className="border px-2 py-1">{emp.designation}</td>
+                                        <td className="border px-2 py-1">{emp.remarks}</td>
+                                    </tr>
+                                ))}
+                                </tbody>
+                            </table>
+                        ) : (
+                            <p className="text-gray-500">No Rescheduled employees</p>
+                        )}
+                    </div>
+
+                    {/* Leave EMPLOYEES */}
+                    <div className="rounded-lg bg-white p-4 shadow">
+                        <h2 className="mb-3 text-lg font-semibold">Employees on Leave ({leaveEmployees.length})</h2>
+                        {leaveEmployees.length > 0 ? (
+                            <table className="w-full border border-gray-300 text-sm">
+                                <thead>
+                                <tr className="bg-gray-100">
+                                    <th className="border px-2 py-1">ID</th>
+                                    <th className="border px-2 py-1">Name</th>
+                                    <th className="border px-2 py-1">Designation</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                {leaveEmployees.map((emp) => (
+                                    <tr
+                                        key={emp.employee_id}
+                                        // onClick={() => openAbsentEmployeeModal(emp)}
+                                        className="hover:bg-gray-50"
+                                    >
                                         <td className="border px-2 py-1">{emp.employee_id}</td>
                                         <td className="border px-2 py-1">{emp.name}</td>
                                         <td className="border px-2 py-1">{emp.designation}</td>
