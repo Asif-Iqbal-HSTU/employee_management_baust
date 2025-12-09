@@ -25,6 +25,8 @@ export default function Dashboard() {
         year: number;
     };
 
+    console.log(calendarLogs);
+
     const firstDay = dayjs(`${year}-${month}-01`);
     const daysInMonth = firstDay.daysInMonth();
     const startWeekDay = firstDay.day(); // 0 = Sunday
@@ -129,11 +131,19 @@ export default function Dashboard() {
                         <div className="h-4 w-4 rounded bg-red-50 border border-red-400"></div>
                         <span className="text-xs text-red-700">Absent</span>
                     </div>
+
+                    {/* NEW LEGEND */}
+                    <div className="flex items-center gap-1">
+                        <div className="h-4 w-4 rounded bg-purple-100 border border-purple-500"></div>
+                        <span className="text-xs text-purple-800">Leave</span>
+                    </div>
+
                     <div className="flex items-center gap-1">
                         <div className="h-4 w-4 rounded bg-green-100 border border-green-600"></div>
                         <span className="text-xs text-green-800">Today</span>
                     </div>
                 </div>
+
 
 
                 {/* CALENDAR GRID */}
@@ -155,17 +165,36 @@ export default function Dashboard() {
                         const isToday = date === today;
 
                         const weekday = dayjs(date).day();
-                        const isWeeklyHoliday = weekday === 5 || weekday === 6; // Fri=5, Sat=6
+                        const isWeeklyHoliday = (weekday === 5 || weekday === 6);
 
-                        // Determine cell styles
+                        // NEW: leave detection
+                        const isLeave = log && (
+                            log.status?.includes("Sent to Registrar") ||
+                            log.status?.includes("On Leave")
+                        );
+
                         let cellClasses = 'flex h-28 flex-col rounded-lg border p-2 text-sm';
-                        if (isToday) cellClasses += ' border-green-600 bg-green-100';
-                        else if (isHoliday) cellClasses += ' border-blue-500 bg-blue-100 text-blue-800';
-                        else if (isWeeklyHoliday) cellClasses += ' border-yellow-500 bg-yellow-100 text-yellow-800';
-                        else if (log) {
-                            if (log.status.includes('late')) cellClasses += ' border-yellow-400 bg-yellow-50';
-                            else if (log.status.includes('early')) cellClasses += ' border-orange-400 bg-orange-50';
-                            else cellClasses += ' border-green-400 bg-green-50';
+
+                        if (isToday) {
+                            cellClasses += ' border-green-600 bg-green-100';
+
+                        } else if (isHoliday) {
+                            cellClasses += ' border-blue-500 bg-blue-100 text-blue-800';
+
+                        } else if (isWeeklyHoliday) {
+                            cellClasses += ' border-yellow-500 bg-yellow-100 text-yellow-800';
+
+                        } else if (isLeave) {
+                            cellClasses += ' border-purple-500 bg-purple-100 text-purple-800';
+
+                        } else if (log) {
+                            if (log.status.includes('late'))
+                                cellClasses += ' border-yellow-400 bg-yellow-50';
+                            else if (log.status.includes('early'))
+                                cellClasses += ' border-orange-400 bg-orange-50';
+                            else
+                                cellClasses += ' border-green-400 bg-green-50';
+
                         } else if (dayjs(date).isBefore(today, 'day')) {
                             cellClasses += ' border-red-400 bg-red-50 text-red-700';
                         }
@@ -174,7 +203,12 @@ export default function Dashboard() {
                             <div key={date} className={cellClasses}>
                                 <div className="font-bold">{dayjs(date).date()}</div>
 
-                                {log ? (
+                                {/* Content Rendering */}
+                                {isLeave ? (
+                                    <div className="mt-auto text-xs font-semibold">
+                                        {log.status}
+                                    </div>
+                                ) : log ? (
                                     <div className="mt-auto text-xs">
                                         <div>In: <span className="font-medium">{log.in_time || '-'}</span></div>
                                         <div>Out: <span className="font-medium">{log.out_time || '-'}</span></div>
@@ -186,11 +220,12 @@ export default function Dashboard() {
                                 ) : dayjs(date).isBefore(today, 'day') ? (
                                     <div className="mt-auto text-xs">Absent</div>
                                 ) : (
-                                    <div className="mt-auto text-xs text-gray-400">—</div> // future dates
+                                    <div className="mt-auto text-xs text-gray-400">—</div>
                                 )}
                             </div>
                         );
                     })}
+
 
 
 

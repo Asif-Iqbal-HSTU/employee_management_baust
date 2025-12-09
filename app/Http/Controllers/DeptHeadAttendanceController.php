@@ -103,13 +103,26 @@ class DeptHeadAttendanceController extends Controller
             ->where('date', $request->date)
             ->first();
 
-        if (!$attendance) {
+        /*if (!$attendance) {
             return back()->with('error', 'Attendance record not found.');
         }
 
         $attendance->status  = $request->status;
         $attendance->remarks = $request->remarks;
-        $attendance->save();
+        $attendance->save();*/
+
+        DailyAttendance::updateOrCreate(
+            [
+                'employee_id' => $request->employee_id,
+                'date' => $request->date
+            ],
+            [
+                'in_time' => null,
+                'out_time' => null,
+                'status' => $request->status,
+                'remarks' => $request->remarks
+            ]
+        );
 
         return back()->with('success', 'Attendance updated successfully.');
     }

@@ -3,6 +3,7 @@ import { Head } from '@inertiajs/react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useRef } from 'react';
+import { router } from '@inertiajs/react';
 
 type SummaryRow = {
     department: string;
@@ -28,7 +29,7 @@ type Props = {
 export default function LateSummaryReport({ date, summaryTable, lateDetails, absentDetails }: Props) {
     const tablesRef = useRef<HTMLDivElement>(null);
 
-    const handleDownload = () => {
+    const handleDownload0 = () => {
         const doc = new jsPDF('p', 'pt', 'a4');
 
         doc.setFontSize(13);
@@ -39,9 +40,17 @@ export default function LateSummaryReport({ date, summaryTable, lateDetails, abs
         autoTable(doc, {
             html: tablesRef.current!.querySelector('#summary-table') as HTMLTableElement,
             startY: 70,
-            styles: { fontSize: 8 },
             theme: 'grid',
+            styles: { fontSize: 8 },
+            columnStyles: {
+                0: { cellWidth: 140 }, // Department
+                1: { cellWidth: 80 },  // Total
+                2: { cellWidth: 80 },  // Late
+                3: { cellWidth: 80 },  // Not Present
+            },
+            tableWidth: 'wrap',
         });
+
 
         let currentY = (doc as any).lastAutoTable.finalY + 30;
 
@@ -53,9 +62,17 @@ export default function LateSummaryReport({ date, summaryTable, lateDetails, abs
             autoTable(doc, {
                 html: tablesRef.current!.querySelector(`#late-${dept}`) as HTMLTableElement,
                 startY: currentY,
-                styles: { fontSize: 8 },
                 theme: 'grid',
+                styles: { fontSize: 8 },
+                columnStyles: {
+                    0: { cellWidth: 80 },  // Employee ID
+                    1: { cellWidth: 160 }, // Name
+                    2: { cellWidth: 120 }, // Designation
+                    3: { cellWidth: 80 },  // Entry Time
+                },
+                tableWidth: 'wrap',
             });
+
 
             currentY = (doc as any).lastAutoTable.finalY + 20;
         });
@@ -68,15 +85,66 @@ export default function LateSummaryReport({ date, summaryTable, lateDetails, abs
             autoTable(doc, {
                 html: tablesRef.current!.querySelector(`#absent-${dept}`) as HTMLTableElement,
                 startY: currentY,
-                styles: { fontSize: 8 },
                 theme: 'grid',
+                styles: { fontSize: 8 },
+                columnStyles: {
+                    0: { cellWidth: 80 },  // Employee ID
+                    1: { cellWidth: 160 }, // Name
+                    2: { cellWidth: 120 }, // Designation
+                },
+                tableWidth: 'wrap',
             });
+
 
             currentY = (doc as any).lastAutoTable.finalY + 20;
         });
 
         doc.save(`Late_Absent_Summary_${date}.pdf`);
     };
+
+    const handleDownload1 = () => {
+        router.post('/reports/late-summary/download', {
+            date,
+            summaryTable,
+            lateDetails,
+            absentDetails,
+        }, {
+            preserveScroll: true,
+        });
+    };
+
+    const handleDownload = () => {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/reports/late-summary/download';
+        form.target = '_blank';
+
+        // CSRF token
+        const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        if (!token) {
+            alert('CSRF token missing!');
+            return;
+        }
+
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = '_token';
+        csrfInput.value = token;
+        form.appendChild(csrfInput);
+
+        // Add the date as hidden input
+        const dateInput = document.createElement('input');
+        dateInput.type = 'hidden';
+        dateInput.name = 'date';
+        dateInput.value = date;
+        form.appendChild(dateInput);
+
+        document.body.appendChild(form);
+        form.submit();
+        form.remove();
+    };
+
+
 
     return (
         <AppLayout breadcrumbs={[{ title: 'Dashboard', href: '/' }]}>

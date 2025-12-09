@@ -78,9 +78,20 @@ export default function EmployeeStatusModal({ employee, isOpen, onClose, date })
                             <input
                                 type="radio"
                                 name="status"
-                                value="on leave"
-                                checked={status === "on leave"}
-                                onChange={() => setStatus("on leave")}
+                                value="rescheduled"
+                                checked={status === "rescheduled"}
+                                onChange={() => setStatus("rescheduled")}
+                            />
+                            Rescheduled
+                        </label>
+
+                        <label className="flex items-center gap-2">
+                            <input
+                                type="radio"
+                                name="status"
+                                value="On Leave"
+                                checked={status === "On Leave"}
+                                onChange={() => setStatus("On Leave")}
                             />
                             On Leave
                         </label>

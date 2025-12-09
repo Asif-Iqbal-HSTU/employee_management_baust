@@ -236,7 +236,7 @@ export default function Attendance({ date, report, department }: Props) {
                                     {leaveEmployees.map((emp) => (
                                         <tr
                                             key={emp.employee_id}
-                                            onClick={() => openAbsentEmployeeModal(emp)}
+                                            // onClick={() => openAbsentEmployeeModal(emp)}
                                             className="hover:bg-gray-50"
                                         >
                                             <td className="border px-2 py-1">{emp.employee_id}</td>

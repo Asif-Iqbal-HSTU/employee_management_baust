@@ -17,6 +17,14 @@ export default function SyncLogs() {
     const dailyForm = useForm();   // for generating daily attendance
 
 
+    const [showOfficeModal, setShowOfficeModal] = useState(false);
+
+    const [officeStartDate, setOfficeStartDate] = useState('');
+    const [officeEndDate, setOfficeEndDate] = useState('');
+    const [officeIn, setOfficeIn] = useState('08:00');
+    const [officeOut, setOfficeOut] = useState('14:30');
+
+
     const [lastSynced, setLastSynced] = useState<string | null>(null);
     const [lastSent, setLastSent] = useState<string | null>(null);
 
@@ -195,6 +203,117 @@ export default function SyncLogs() {
                             Open Report
                         </Link>
                     </div>
+
+                    {/* Office Time Settings */}
+                    <div className="max-w-sm p-6 bg-white border border-gray-200 rounded-lg shadow-sm dark:bg-gray-800 dark:border-gray-700">
+                        <h5 className="mb-2 text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+                            Office Time Settings
+                        </h5>
+
+                        <p className="mb-3 font-normal text-gray-700 dark:text-gray-400">
+                            Set office start & end time for a date range.
+                        </p>
+
+                        <button
+                            onClick={() => setShowOfficeModal(true)}
+                            className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 rounded-md"
+                        >
+                            Update Office Time
+                        </button>
+                    </div>
+
+                    {showOfficeModal && (
+                        <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
+                            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg w-full max-w-md">
+                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                                    Update Office Time
+                                </h3>
+
+                                <form
+                                    onSubmit={(e) => {
+                                        e.preventDefault();
+                                        axios
+                                            .post(route("office_time.store"), {
+                                                start_date: officeStartDate,
+                                                end_date: officeEndDate,
+                                                in_time: officeIn,
+                                                out_time: officeOut,
+                                            })
+                                            .then(() => {
+                                                toast.success("Office time updated");
+                                                setShowOfficeModal(false);
+                                            })
+                                            .catch(() => toast.error("Failed to update"));
+                                    }}
+                                >
+                                    <div className="space-y-4">
+
+                                        <div>
+                                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Start Date</label>
+                                            <input
+                                                type="date"
+                                                className="mt-1 w-full rounded border p-2 dark:bg-gray-700 dark:text-white"
+                                                value={officeStartDate}
+                                                onChange={(e) => setOfficeStartDate(e.target.value)}
+                                                required
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">End Date</label>
+                                            <input
+                                                type="date"
+                                                className="mt-1 w-full rounded border p-2 dark:bg-gray-700 dark:text-white"
+                                                value={officeEndDate}
+                                                onChange={(e) => setOfficeEndDate(e.target.value)}
+                                                required
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Office Start Time</label>
+                                            <input
+                                                type="time"
+                                                className="mt-1 w-full rounded border p-2 dark:bg-gray-700 dark:text-white"
+                                                value={officeIn}
+                                                onChange={(e) => setOfficeIn(e.target.value)}
+                                                required
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Office End Time</label>
+                                            <input
+                                                type="time"
+                                                className="mt-1 w-full rounded border p-2 dark:bg-gray-700 dark:text-white"
+                                                value={officeOut}
+                                                onChange={(e) => setOfficeOut(e.target.value)}
+                                                required
+                                            />
+                                        </div>
+
+                                        <div className="flex justify-end gap-2 pt-3">
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowOfficeModal(false)}
+                                                className="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-sm rounded-md dark:bg-gray-700 dark:text-white"
+                                            >
+                                                Cancel
+                                            </button>
+
+                                            <button
+                                                type="submit"
+                                                className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-sm rounded-md"
+                                            >
+                                                Save
+                                            </button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+
 
                 </div>
             </div>

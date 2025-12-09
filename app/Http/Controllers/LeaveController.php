@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\DailyAttendance;
 use App\Models\Leave;
 use App\Models\Worklog;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -84,6 +86,27 @@ class LeaveController extends Controller
         $leave->update([
             'status' => 'Sent to Registrar',
         ]);
+
+        // Insert into DailyAttendance table for each date
+        $start = Carbon::parse($leave->start_date);
+        $end   = Carbon::parse($leave->end_date);
+
+        while ($start->lte($end)) {
+            DailyAttendance::updateOrCreate(
+                [
+                    'employee_id' => $leave->employee_id,
+                    'date' => $start->toDateString()
+                ],
+                [
+                    'in_time' => null,
+                    'out_time' => null,
+                    'status' => 'On Leave',
+                    'remarks' => 'Leave approved by Head'
+                ]
+            );
+
+            $start->addDay();
+        }
 
         return back()->with('success', 'Leave forwarded to Registrar.');
     }

@@ -157,7 +157,7 @@ class AttendanceController extends Controller
         return view('attendance.report', compact('logs', 'date'));
     }
 
-    public function showLateSummaryReport()
+    public function showLateSummaryReportOriginal()
     {
         $summaryTable = [];
         $lateDetails = [];
@@ -241,6 +241,115 @@ class AttendanceController extends Controller
             'date' => $date,
         ]);
     }
+
+    public function showLateSummaryReport()
+    {
+        $summaryTable = [];
+        $lateDetails = [];
+        $absentDetails = [];
+        $date = now()->toDateString();
+
+        // Fetch all departments
+        $departments = DB::table('departments')->get();
+
+        foreach ($departments as $dept) {
+            $deptId = $dept->id;
+            $departmentName = $dept->dept_name;
+
+            // All employees under this department
+            $employees = DB::table('users')
+                ->join('user_assignments', 'users.employee_id', '=', 'user_assignments.employee_id')
+                ->leftJoin('designations', 'designations.id', '=', 'user_assignments.designation_id')
+                ->where('user_assignments.department_id', $deptId)
+                ->select('users.employee_id', 'users.name', 'designations.designation_name as designation')
+                ->get();
+
+            $totalCount = $employees->count();
+            $lateCount = 0;
+
+            $lateEmployees = [];
+            $absentEmployees = [];
+
+            foreach ($employees as $employee) {
+                // Fetch the daily attendance row for this employee + date
+                $attendance = \App\Models\DailyAttendance::where('employee_id', $employee->employee_id)
+                    ->where('date', $date)
+                    ->first();
+
+                if ($attendance) {
+                    $inTime = $attendance->in_time;
+
+                    // If entry time is greater than 08:00:00 → late
+                    /*if ($inTime && $inTime > '08:00:00') {
+                        $lateCount++;
+
+                        // Attach in_time to employee record
+                        $empWithInTime = (object) array_merge((array) $employee, [
+                            'in_time' => $inTime
+                        ]);
+
+                        $lateEmployees[] = $empWithInTime;
+                    }*/
+
+                    $status = $attendance->status;
+
+                    if($status && str_contains($status, 'late entry')){
+                        $lateCount++;
+
+                        // Attach in_time to employee record
+                        $empWithInTime = (object) array_merge((array) $employee, [
+                            'in_time' => $inTime
+                        ]);
+
+                        $lateEmployees[] = $empWithInTime;
+                    }
+
+                } else {
+                    // No attendance record ⇒ Absent
+                    $absentEmployees[] = $employee;
+                }
+            }
+
+            // Build department summary
+            $summaryTable[] = [
+                'department' => $departmentName,
+                'total' => $totalCount,
+                'late' => $lateCount,
+                'absent' => count($absentEmployees),
+            ];
+
+            // Format Late details
+            if (!empty($lateEmployees)) {
+                $lateDetails[$departmentName] = array_map(function ($e) {
+                    return [
+                        'employee_id' => $e->employee_id,
+                        'name' => $e->name,
+                        'designation' => $e->designation,
+                        'in_time' => $e->in_time ?? null,
+                    ];
+                }, $lateEmployees);
+            }
+
+            // Format Absent details
+            if (!empty($absentEmployees)) {
+                $absentDetails[$departmentName] = array_map(function ($e) {
+                    return [
+                        'employee_id' => $e->employee_id,
+                        'name' => $e->name,
+                        'designation' => $e->designation,
+                    ];
+                }, $absentEmployees);
+            }
+        }
+
+        return Inertia::render('LateSummaryReport', [
+            'summaryTable' => $summaryTable,
+            'lateDetails' => $lateDetails,
+            'absentDetails' => $absentDetails,
+            'date' => $date,
+        ]);
+    }
+
 
 
     /*public function deviceLogs()

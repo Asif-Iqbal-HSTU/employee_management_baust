@@ -4,6 +4,8 @@ use App\Http\Controllers\AttendanceMatrixController;
 use App\Http\Controllers\DailyAttendanceController;
 use App\Http\Controllers\IssueVoucherController;
 use App\Http\Controllers\LeaveController;
+use App\Http\Controllers\OfficeTimeController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\StoreCategoryController;
 use App\Http\Controllers\StoreProductController;
 use App\Http\Controllers\TimeAssignmentController;
@@ -381,6 +383,14 @@ Route::post('/attendance/summary/generate', [AttendanceMatrixController::class, 
 
 Route::get('/attendance/summary/pdf', [AttendanceMatrixController::class, 'summaryPdf'])
     ->name('attendance.summary.pdf');
+
+
+Route::post('/office-time/store', [OfficeTimeController::class, 'store'])
+    ->name('office_time.store');
+
+
+Route::post('/reports/late-summary/download', [ReportController::class, 'downloadPdf']);
+
 
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';

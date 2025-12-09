@@ -4,12 +4,67 @@ namespace App\Http\Controllers;
 
 use App\Models\DailyAttendance;
 use App\Models\DeviceLog;
+use App\Models\OfficeTime;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class DailyAttendanceController extends Controller
 {
+    public function getOfficeTimeForDate($date)
+    {
+        return OfficeTime::where('start_date', '<=', $date)
+            ->where('end_date', '>=', $date)
+            ->first() ?? (object)[
+            'in_time'  => '08:00:00',
+            'out_time' => '14:30:00'
+        ];
+    }
+
     public function generateDailyAttendance(): \Illuminate\Http\JsonResponse
+    {
+        $records = DeviceLog::select(
+            'employee_id',
+            DB::raw('DATE(`timestamp`) as day'),
+            DB::raw('MIN(`timestamp`) as in_time'),
+            DB::raw('MAX(`timestamp`) as out_time')
+        )
+            ->groupBy('employee_id', 'day')
+            ->get();
+
+        foreach ($records as $r) {
+
+            // Office rule for the date
+            $office = $this->getOfficeTimeForDate($r->day);
+
+            $inThresh  = $office->in_time ?: '08:00:00';
+            $outThresh = $office->out_time ?: '14:30:00';
+
+            $in  = Carbon::parse($r->in_time)->format('H:i:s');
+            $out = Carbon::parse($r->out_time)->format('H:i:s');
+
+            $status = [];
+            if ($in > $inThresh)  $status[] = 'late entry';
+            if ($out < $outThresh) $status[] = 'early leave';
+            if (!$in && !$out) $status[] = 'absent';
+
+            DailyAttendance::updateOrCreate(
+                [
+                    'employee_id' => $r->employee_id,
+                    'date'        => $r->day,
+                ],
+                [
+                    'in_time'  => $in,
+                    'out_time' => $out,
+                    'status'   => implode(', ', $status) ?: 'ok',
+                ]
+            );
+        }
+
+        return response()->json(['message' => 'Daily attendance generated']);
+    }
+
+
+    /*public function generateDailyAttendance(): \Illuminate\Http\JsonResponse
     {
         // Group raw logs by employee + date
         $records = DeviceLog::select(
@@ -46,7 +101,7 @@ class DailyAttendanceController extends Controller
         }
 
         return response()->json(['message' => 'Daily attendance generated']);
-    }
+    }*/
 
     /*public function generateDailyAttendance(): \Illuminate\Http\JsonResponse
     {
