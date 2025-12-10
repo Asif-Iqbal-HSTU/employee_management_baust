@@ -253,7 +253,10 @@ class DeviceLogController extends Controller
                 // -------------------------------------
                 // Fetch office rule for this date
                 // -------------------------------------
-                $rule = \App\Models\OfficeTime::whereDate($date);
+                $rule = \App\Models\OfficeTime::whereDate('start_date', '<=', $date)
+                    ->whereDate('end_date', '>=', $date)
+                    ->first();
+
 
                 $officeIn  = $rule?->in_time ?? '08:00:00';
                 $officeOut = $rule?->out_time ?? '14:30:00';
