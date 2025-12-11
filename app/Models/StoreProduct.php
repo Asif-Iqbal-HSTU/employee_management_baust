@@ -25,16 +25,10 @@ class StoreProduct extends Model
         return $this->hasMany(StoreReceive::class);
     }
 
-    // Many-to-many
+    // ✔ One product may be used in many vouchers
     public function vouchers()
     {
-        return $this->belongsToMany(IssueVoucher::class)
-            ->withPivot([
-                'requisitioned_quantity',
-                'issued_quantity',
-                'specification',
-            ])
-            ->withTimestamps();
+        return $this->hasMany(IssueVoucher::class, 'store_product_id');
     }
 
 

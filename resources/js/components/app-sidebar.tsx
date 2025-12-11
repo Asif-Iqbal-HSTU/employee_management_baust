@@ -24,6 +24,12 @@ export function AppSidebar() {
         );
     }
 
+    if (authUser?.headed_department) {
+        mainNavItems.push(
+            { title: 'Store Requisitions', href: '/dept-head/store/requisitions', category: 'Store', icon: Clock },
+        );
+    }
+
     // if (authUser?.headed_department || authUser?.employee_id == 25052) {
     //     mainNavItems.push(
     //         { title: 'My Department Attendance', href: '/dept-head/attendance', category: 'Attendance', icon: CalendarClock },

@@ -42,7 +42,7 @@ return new class extends Migration
 
             $table->string('sl_no')->nullable();
             $table->string('book_no')->nullable();
-
+            $table->foreignId('store_product_id')->constrained('store_products')->onDelete('cascade');
             // Employee relations
             $table->string('requisition_employee_id');
             $table->foreign('requisition_employee_id')
@@ -50,11 +50,7 @@ return new class extends Migration
                 ->on('users')
                 ->onDelete('cascade');
 
-            $table->string('receiver_employee_id');
-            $table->foreign('receiver_employee_id')
-                ->references('employee_id')
-                ->on('users')
-                ->onDelete('cascade');
+            $table->string('receiver')->nullable();
 
             // Department
             $table->foreignId('department_id')
@@ -71,7 +67,9 @@ return new class extends Migration
             $table->string('allowed_by_head')->default('No');
             $table->string('allowed_by_registrar')->default('No');
             $table->string('issued_by_storeman')->default('No');
-
+            $table->integer('requisitioned_quantity');
+            $table->integer('issued_quantity')->nullable();
+            $table->string('specification')->nullable();
             $table->timestamps();
         });
     }

@@ -8,6 +8,7 @@ use App\Http\Controllers\OfficeTimeController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\StoreCategoryController;
 use App\Http\Controllers\StoreProductController;
+use App\Http\Controllers\StoreReceiveController;
 use App\Http\Controllers\TimeAssignmentController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -360,12 +361,21 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/requisitions', [IssueVoucherController::class, 'index'])->name('voucher.index');
-    Route::post('/requisitions-create', [IssueVoucherController::class, 'create'])->name('voucher.create');
+    Route::post('/requisitions-create', [IssueVoucherController::class, 'store'])->name('voucher.create');
     Route::get('/categories', [StoreCategoryController::class, 'index'])->name('category.index');
     Route::get('/category/products/{id}', [StoreCategoryController::class, 'products'])->name('store.products');
     Route::post('/categories-create', [StoreCategoryController::class, 'create'])->name('category.create');
     Route::post('/store-products', [StoreProductController::class, 'store'])
         ->name('store.products.store');
+    Route::post('/store-products/receive', [StoreReceiveController::class, 'store'])
+        ->name('store.receive.store');
+
+    Route::get('/dept-head/store/requisitions', [IssueVoucherController::class, 'depthead_allow'])->name('voucher.head.allow');
+    Route::post('/dept-head/store/requisitions/{voucher}/approve',
+        [IssueVoucherController::class, 'approveByHead']
+    )->name('voucher.head.approve');
+
+
 
 });
 

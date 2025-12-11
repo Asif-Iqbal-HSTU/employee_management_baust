@@ -4,30 +4,10 @@ import { Head, Link, useForm } from '@inertiajs/react';
 import React from 'react';
 import { toast } from 'sonner';
 
-export default function DeptList({ categories }: any) {
+export default function Categoryandproduct({ categories }: any) {
     const breadcrumbs: BreadcrumbItem[] = [{ title: 'Categories of Store Preducts', href: '/categories' }];
 
     console.log(categories);
-
-    const today = new Date().toISOString().split('T')[0];
-
-    const { data, setData, post, processing, reset, errors } = useForm({
-        date: today,
-        startTime: '',
-        endTime: '',
-        taskDescription: '',
-        status: '',
-    });
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        post(route('worklog.store'), {
-            onSuccess: () => {
-                toast.success('Worklog added successfully!');
-                reset('startTime', 'endTime', 'taskDescription', 'status');
-            },
-        });
-    };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
