@@ -78,6 +78,13 @@ export function AppSidebar() {
         );
     }
 
+    if (
+        authUser?.employee_id == 15302 || authUser?.employee_id == 19001) {
+        mainNavItems.push(
+            { title: 'Issue List', href: '/storeman/issues', category: 'Store', icon: Logs },
+        );
+    }
+
     /*if ([25052, 15012, 25040, 21023, 15231].includes(authUser?.employee_id)) {
         mainNavItems.push(
             { title: 'All Departments', href: '/departments', icon: Logs },

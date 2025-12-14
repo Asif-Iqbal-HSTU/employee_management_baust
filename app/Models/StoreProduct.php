@@ -15,12 +15,12 @@ class StoreProduct extends Model
         return $this->belongsTo(StoreCategory::class);
     }
 
-    public function storeIssues(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function issues(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(StoreIssue::class);
     }
 
-    public function storeReceives(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function receives(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(StoreReceive::class);
     }

@@ -7,6 +7,7 @@ use App\Http\Controllers\LeaveController;
 use App\Http\Controllers\OfficeTimeController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\StoreCategoryController;
+use App\Http\Controllers\StoreIssueController;
 use App\Http\Controllers\StoreProductController;
 use App\Http\Controllers\StoreReceiveController;
 use App\Http\Controllers\TimeAssignmentController;
@@ -375,7 +376,16 @@ Route::middleware(['auth'])->group(function () {
         [IssueVoucherController::class, 'approveByHead']
     )->name('voucher.head.approve');
 
+    Route::get('/storeman/issues', [StoreIssueController::class, 'storeman_index'])
+        ->name('voucher.storeman.index');
 
+    Route::post('/storeman/issues/{voucher}', [StoreIssueController::class, 'storeman_issue'])
+        ->name('voucher.storeman.issue');
+
+    Route::get(
+        '/store/products/{product}/stock-print',
+        [StoreIssueController::class, 'printStockRegister']
+    )->name('store.product.stock.print');
 
 });
 
