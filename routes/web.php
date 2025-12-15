@@ -5,6 +5,7 @@ use App\Http\Controllers\DailyAttendanceController;
 use App\Http\Controllers\IssueVoucherController;
 use App\Http\Controllers\LeaveController;
 use App\Http\Controllers\OfficeTimeController;
+use App\Http\Controllers\ProductVendorController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\StoreCategoryController;
 use App\Http\Controllers\StoreIssueController;
@@ -386,6 +387,10 @@ Route::middleware(['auth'])->group(function () {
         '/store/products/{product}/stock-print',
         [StoreIssueController::class, 'printStockRegister']
     )->name('store.product.stock.print');
+
+    Route::post('/product-vendors', [ProductVendorController::class, 'store'])
+        ->name('product-vendors.store');
+
 
 });
 

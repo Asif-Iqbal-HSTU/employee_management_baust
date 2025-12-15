@@ -65,43 +65,107 @@
     </thead>
 
     <tbody>
-    @php $balance = 0; @endphp
+    @php
+        $balance = 0;
 
-    {{-- RECEIVES --}}
-    @foreach($product->receives as $r)
-        @php $balance += $r->quantity; @endphp
+        /* ================= BUILD EVENT TIMELINE ================= */
+        $events = [];
+
+        foreach ($product->receives as $r) {
+            $events[] = [
+                'type' => 'receive',
+                'date' => $r->date_of_receive,
+                'data' => $r,
+            ];
+        }
+
+        foreach ($product->issues as $i) {
+            $events[] = [
+                'type' => 'issue',
+                'date' => $i->date_of_issue,
+                'data' => $i,
+            ];
+        }
+
+        /* ================= SORT BY DATE ================= */
+        usort($events, function ($a, $b) {
+            return strtotime($a['date']) <=> strtotime($b['date']);
+        });
+    @endphp
+
+    @forelse($events as $event)
+
+        {{-- ================= RECEIVE ================= --}}
+        @if($event['type'] === 'receive')
+            @php
+                $r = $event['data'];
+                $balance += $r->quantity;
+            @endphp
+            <tr>
+                <td>{{ $r->date_of_receive }}</td>
+                <td>
+                    {{ $r->from_whom }}<br>
+                    <small>Memo: {{ $r->memo_no }} ({{ $r->memo_date }})</small>
+                </td>
+                <td>{{ $product->product_name }}</td>
+                <td>{{ $r->office_order_no }}</td>
+                <td class="right">{{ $r->rate }}</td>
+                <td class="right">{{ $r->quantity }}</td>
+                <td>{{ $r->warranty_information }}</td>
+
+                {{-- ISSUE EMPTY --}}
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+
+                <td class="right">{{ $balance }}</td>
+
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+
+            {{-- ================= ISSUE ================= --}}
+        @else
+            @php
+                $i = $event['data'];
+                $balance -= $i->issued_quantity;
+            @endphp
+            <tr>
+                {{-- RECEIVE EMPTY --}}
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+
+                <td>{{ $i->date_of_issue }}</td>
+                <td>{{ $i->voucher->requisitionedBy->name ?? '—' }}</td>
+                <td>
+                    {{ $i->voucher->sl_no }}<br>
+                    <small>{{ $i->voucher->date }}</small>
+                </td>
+                <td class="right">{{ $i->issued_quantity }}</td>
+                <td class="right">{{ $balance }}</td>
+                <td>
+                    {{ $i->voucher->receiver }}<br>
+                    <small>{{ $i->voucher->department->dept_name ?? '' }}</small>
+                </td>
+                <td></td>
+                <td></td>
+            </tr>
+        @endif
+
+    @empty
         <tr>
-            <td>{{ $r->date_of_receive }}</td>
-            <td>{{ $r->from_whom }} ({{ $r->memo_no }})</td>
-            <td>{{ $product->product_name }}</td>
-            <td>{{ $r->office_order_no }}</td>
-            <td class="right">{{ $r->rate }}</td>
-            <td class="right">{{ $r->quantity }}</td>
-            <td>{{ $r->warranty_information }}</td>
-
-            <td colspan="4"></td>
-            <td class="right">{{ $balance }}</td>
-            <td colspan="3"></td>
+            <td colspan="15" class="center">No data available</td>
         </tr>
-    @endforeach
-
-    {{-- ISSUES --}}
-    @foreach($product->issues as $i)
-        @php $balance -= $i->issued_quantity; @endphp
-        <tr>
-            <td colspan="7"></td>
-
-            <td>{{ $i->date_of_issue }}</td>
-            <td>{{ $i->voucher->requisitionedBy->name ?? '—' }}</td>
-            <td>{{ $i->voucher->sl_no }}</td>
-            <td class="right">{{ $i->issued_quantity }}</td>
-            <td class="right">{{ $balance }}</td>
-            <td>{{ $i->voucher->receiver }}</td>
-            <td></td>
-            <td></td>
-        </tr>
-    @endforeach
+    @endforelse
     </tbody>
+
 </table>
 
 </body>

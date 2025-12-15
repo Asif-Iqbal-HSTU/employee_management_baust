@@ -4,7 +4,7 @@ import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid, Clock, Logs, User2, CalendarClock, Calendar, MonitorCog, FileSliders, ScrollText, Warehouse } from 'lucide-react';
+import { BookOpen, Folder, LayoutGrid, Clock, Logs, User2, CalendarClock, Calendar, MonitorCog, FileSliders, ScrollText, Warehouse, TreePalm, Volleyball, TicketsPlane } from 'lucide-react';
 import AppLogo from './app-logo';
 
 export function AppSidebar() {
@@ -20,7 +20,7 @@ export function AppSidebar() {
         mainNavItems.push(
             { title: 'My Department Attendance', href: '/dept-head/attendance', category: 'Attendance', icon: CalendarClock },
             // { title: 'Time Assignment', href: '/time-assignments', category: 'Attendance', icon: Clock },
-            { title: 'Leaves Requested', href: '/dept-head/leaves', category: 'Leave Management', icon: Clock },
+            { title: 'Leaves Requested', href: '/dept-head/leaves', category: 'Leave Management', icon: TreePalm },
         );
     }
 
@@ -48,7 +48,7 @@ export function AppSidebar() {
             { title: 'All Departments', href: '/departments', category: 'Attendance', icon: Logs },
             { title: 'Late Summary Report', href: '/late-summary-report', category: 'Attendance', icon: Logs },
             { title: 'Monthly Report', href: '/departmentList', category: 'Attendance', icon: Calendar },
-            { title: 'Leave Finalization', href: '/registrar/leave-requests', category: 'Leave Management', icon: Calendar }
+            { title: 'Leave Finalization', href: '/registrar/leave-requests', category: 'Leave Management', icon: TicketsPlane }
         );
     }
 
@@ -63,7 +63,6 @@ export function AppSidebar() {
     if (authUser?.employee_id == 25052 ||
         authUser?.employee_id == 15012 ||
         authUser?.employee_id == 21023 ||
-        authUser?.employee_id == 25040 ||
         authUser?.employee_id == 15231) {
         mainNavItems.push(
             { title: 'All Departments', href: '/departments', category: 'Attendance', icon: Logs },
@@ -94,7 +93,6 @@ export function AppSidebar() {
 
     if (authUser?.employee_id == 23033 ||
         authUser?.employee_id == 25052 ||
-        authUser?.employee_id == 25040 ||
         authUser?.employee_id == 15012 ||
         authUser?.employee_id == 21023)
     {
@@ -102,7 +100,7 @@ export function AppSidebar() {
     }
 
     mainNavItems.push(
-        { title: 'Request Leaves', href: '/leave-management', category: 'Leave Management', icon: Calendar },
+        { title: 'Request Leaves', href: '/leave-management', category: 'Leave Management', icon: Volleyball },
         // { title: 'Worklog', href: '/worklog', category: 'Attendance', icon: Calendar },
         { title: 'My Repair Requests', href: '/repair-requests', category: 'IT Repair Cell', icon: FileSliders },
         { title: 'Request a Repair', href: '/repair-requests/create', category: 'IT Repair Cell', icon: MonitorCog },

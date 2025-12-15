@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ProductVendor;
 use App\Models\RepairRequest;
 use App\Models\StoreCategory;
 use App\Models\StoreProduct;
@@ -47,9 +48,12 @@ class StoreCategoryController extends Controller
             ->where('store_category_id', $id)
             ->get();
 
+        $vendors = ProductVendor::orderBy('vendor_name')->get();
+
         return inertia('Store/productsofcategory', [
             'category' => $category,
             'products' => $products,
+            'vendors'  => $vendors,
         ]);
     }
 

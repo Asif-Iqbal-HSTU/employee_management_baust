@@ -5,7 +5,7 @@ import { PlusCircle } from 'lucide-react';
 import React, { useState } from 'react';
 import { toast } from 'sonner';
 
-export default function ProductOfCategory({ products, category }: any) {
+export default function ProductOfCategory({ products, category, vendors }: any) {
     const auth = usePage().props.auth.user;
     console.log(auth.employee_id);
     const breadcrumbs: BreadcrumbItem[] = [{ title: 'Categories of Store Products', href: '/categories' }];
@@ -69,6 +69,12 @@ export default function ProductOfCategory({ products, category }: any) {
         });
     };
 
+    const [showVendorModal, setShowVendorModal] = useState(false);
+    const vendorForm = useForm({
+        vendor_name: '',
+    });
+
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Store Products" />
@@ -77,17 +83,26 @@ export default function ProductOfCategory({ products, category }: any) {
                 {/* Header */}
                 <div className="mb-6 flex items-center justify-between">
                     <h1 className="text-xl font-bold">{category.category_name}</h1>
-                    {(auth.employee_id == '15302' || auth.employee_id == '19001') && (
+
+                    {(auth.employee_id === '15302' || auth.employee_id === '19001') && (
                         <div className="flex gap-3">
                             <button
                                 onClick={() => setShowAddModal(true)}
-                                className="rounded-lg bg-blue-600 px-4 py-2 text-white shadow hover:bg-blue-700"
+                                className="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
                             >
                                 + Add Product
+                            </button>
+
+                            <button
+                                onClick={() => setShowVendorModal(true)}
+                                className="rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700"
+                            >
+                                + Add Vendor
                             </button>
                         </div>
                     )}
                 </div>
+
 
                 {/* Product List */}
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -138,9 +153,66 @@ export default function ProductOfCategory({ products, category }: any) {
                 </div>
             </div>
 
+            {showVendorModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+                    <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-lg">
+                        <div className="mb-4 flex justify-between">
+                            <h2 className="text-lg font-bold">Add Vendor</h2>
+                            <button onClick={() => setShowVendorModal(false)}>✖</button>
+                        </div>
+
+                        <form
+                            onSubmit={(e) => {
+                                e.preventDefault();
+                                vendorForm.post(route('product-vendors.store'), {
+                                    onSuccess: () => {
+                                        vendorForm.reset();
+                                        setShowVendorModal(false);
+                                    },
+                                });
+                            }}
+                            className="space-y-4"
+                        >
+                            <div>
+                                <label className="block font-medium">Vendor Name</label>
+                                <input
+                                    type="text"
+                                    className="w-full rounded-lg border p-2"
+                                    value={vendorForm.data.vendor_name}
+                                    onChange={(e) =>
+                                        vendorForm.setData('vendor_name', e.target.value)
+                                    }
+                                />
+                                {vendorForm.errors.vendor_name && (
+                                    <p className="text-sm text-red-500">
+                                        {vendorForm.errors.vendor_name}
+                                    </p>
+                                )}
+                            </div>
+
+                            <button
+                                type="submit"
+                                className="rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700"
+                            >
+                                Save Vendor
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+
             {/* ----------------------------- ADD PRODUCT MODAL ----------------------------- */}
             {showAddModal && (
                 <div className="bg-opacity-40 fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+                    {/*<button
+                        type="button"
+                        onClick={() => setShowVendorModal(true)}
+                        className="mt-1 text-xs text-blue-600 underline"
+                    >
+                        + Add new vendor
+                    </button>*/}
+
                     <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-lg">
                         <div className="mb-4 flex items-center justify-between">
                             <h2 className="text-lg font-bold">Add New Product</h2>
@@ -238,7 +310,7 @@ export default function ProductOfCategory({ products, category }: any) {
                             </div>
 
                             {/* From Whom */}
-                            <div>
+                            {/*<div>
                                 <label className="block font-medium">From Whom</label>
                                 <input
                                     type="text"
@@ -247,7 +319,34 @@ export default function ProductOfCategory({ products, category }: any) {
                                     onChange={(e) => receiveForm.setData('from_whom', e.target.value)}
                                 />
                                 {receiveForm.errors.from_whom && <p className="text-sm text-red-500">{receiveForm.errors.from_whom}</p>}
+                            </div>*/}
+
+                            <div>
+                                <label className="block font-medium">From Whom</label>
+
+                                <select
+                                    className="w-full rounded-lg border p-2"
+                                    value={receiveForm.data.from_whom}
+                                    onChange={(e) =>
+                                        receiveForm.setData('from_whom', e.target.value)
+                                    }
+                                >
+                                    <option value="">-- Select Vendor --</option>
+
+                                    {vendors.map((vendor) => (
+                                        <option key={vendor.id} value={vendor.vendor_name}>
+                                            {vendor.vendor_name}
+                                        </option>
+                                    ))}
+                                </select>
+
+                                {receiveForm.errors.from_whom && (
+                                    <p className="text-sm text-red-500">
+                                        {receiveForm.errors.from_whom}
+                                    </p>
+                                )}
                             </div>
+
 
                             {/* Memo No */}
                             <div>
@@ -493,15 +592,46 @@ export default function ProductOfCategory({ products, category }: any) {
                                 </thead>
 
                                 <tbody>
-                                    {(() => {
-                                        let balance = 0;
-                                        const rows: JSX.Element[] = [];
+                                {(() => {
+                                    let balance = 0;
 
-                                        /* ================= RECEIVED ARTICLES ================= */
-                                        previewProduct.receives.forEach((r: any, idx: number) => {
+                                    // 🔹 1. Normalize receives
+                                    const receiveEvents = previewProduct.receives.map((r: any) => ({
+                                        type: 'receive',
+                                        date: r.date_of_receive,
+                                        data: r,
+                                    }));
+
+                                    // 🔹 2. Normalize issues
+                                    const issueEvents = previewProduct.issues.map((i: any) => ({
+                                        type: 'issue',
+                                        date: i.date_of_issue,
+                                        data: i,
+                                    }));
+
+                                    // 🔹 3. Merge + sort chronologically
+                                    const events = [...receiveEvents, ...issueEvents].sort(
+                                        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+                                    );
+
+                                    if (events.length === 0) {
+                                        return (
+                                            <tr>
+                                                <td colSpan={15} className="border p-2 text-center">
+                                                    No data yet
+                                                </td>
+                                            </tr>
+                                        );
+                                    }
+
+                                    // 🔹 4. Render rows in time order
+                                    return events.map((event, idx) => {
+                                        /* ================= RECEIVE ================= */
+                                        if (event.type === 'receive') {
+                                            const r = event.data;
                                             balance += Number(r.quantity || 0);
 
-                                            rows.push(
+                                            return (
                                                 <tr key={`receive-${idx}`}>
                                                     {/* RECEIVED */}
                                                     <td className="border p-1">{r.date_of_receive}</td>
@@ -509,8 +639,8 @@ export default function ProductOfCategory({ products, category }: any) {
                                                         {r.from_whom}
                                                         <br />
                                                         <span className="text-[10px]">
-                                                            Memo: {r.memo_no} ({r.memo_date})
-                                                        </span>
+                                Memo: {r.memo_no} ({r.memo_date})
+                            </span>
                                                     </td>
                                                     <td className="border p-1">{previewProduct.product_name}</td>
                                                     <td className="border p-1">{r.office_order_no}</td>
@@ -527,59 +657,54 @@ export default function ProductOfCategory({ products, category }: any) {
                                                     <td className="border p-1"></td>
                                                     <td className="border p-1"></td>
                                                     <td className="border p-1"></td>
-                                                </tr>,
-                                            );
-                                        });
-
-                                        /* ================= ISSUE ARTICLES ================= */
-                                        previewProduct.issues.forEach((i: any, idx: number) => {
-                                            balance -= Number(i.issued_quantity || 0);
-
-                                            rows.push(
-                                                <tr key={`issue-${idx}`}>
-                                                    {/* RECEIVED (EMPTY) */}
-                                                    <td className="border p-1"></td>
-                                                    <td className="border p-1"></td>
-                                                    <td className="border p-1"></td>
-                                                    <td className="border p-1"></td>
-                                                    <td className="border p-1"></td>
-                                                    <td className="border p-1"></td>
-                                                    <td className="border p-1"></td>
-
-                                                    {/* ISSUE */}
-                                                    <td className="border p-1">{i.date_of_issue}</td>
-                                                    <td className="border p-1">{i.voucher?.requisitioned_by?.name}</td>
-                                                    <td className="border p-1">
-                                                        {i.voucher?.sl_no}
-                                                        <br />
-                                                        <span className="text-[10px]">{i.voucher?.date}</span>
-                                                    </td>
-                                                    <td className="border p-1 text-right">{i.issued_quantity}</td>
-                                                    <td className="border p-1 text-right">{balance}</td>
-                                                    <td className="border p-1">
-                                                        {i.voucher?.receiver}
-                                                        <br />
-                                                        <span className="text-[10px]">{i.voucher?.department?.dept_name}</span>
-                                                    </td>
-                                                    <td className="border p-1 text-center"></td>
-                                                    <td className="border p-1"></td>
-                                                </tr>,
-                                            );
-                                        });
-
-                                        if (rows.length === 0) {
-                                            return (
-                                                <tr>
-                                                    <td colSpan={15} className="border p-2 text-center">
-                                                        No data yet
-                                                    </td>
                                                 </tr>
                                             );
                                         }
 
-                                        return rows;
-                                    })()}
+                                        /* ================= ISSUE ================= */
+                                        const i = event.data;
+                                        balance -= Number(i.issued_quantity || 0);
+
+                                        return (
+                                            <tr key={`issue-${idx}`}>
+                                                {/* RECEIVED (EMPTY) */}
+                                                <td className="border p-1"></td>
+                                                <td className="border p-1"></td>
+                                                <td className="border p-1"></td>
+                                                <td className="border p-1"></td>
+                                                <td className="border p-1"></td>
+                                                <td className="border p-1"></td>
+                                                <td className="border p-1"></td>
+
+                                                {/* ISSUE */}
+                                                <td className="border p-1">{i.date_of_issue}</td>
+                                                <td className="border p-1">
+                                                    {i.voucher?.requisitioned_by?.name}
+                                                </td>
+                                                <td className="border p-1">
+                                                    {i.voucher?.sl_no}
+                                                    <br />
+                                                    <span className="text-[10px]">
+                            {i.voucher?.date}
+                        </span>
+                                                </td>
+                                                <td className="border p-1 text-right">{i.issued_quantity}</td>
+                                                <td className="border p-1 text-right">{balance}</td>
+                                                <td className="border p-1">
+                                                    {i.voucher?.receiver}
+                                                    <br />
+                                                    <span className="text-[10px]">
+                            {i.voucher?.department?.dept_name}
+                        </span>
+                                                </td>
+                                                <td className="border p-1"></td>
+                                                <td className="border p-1"></td>
+                                            </tr>
+                                        );
+                                    });
+                                })()}
                                 </tbody>
+
                             </table>
                         </div>
 
