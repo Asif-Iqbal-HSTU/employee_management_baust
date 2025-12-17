@@ -377,11 +377,28 @@ Route::middleware(['auth'])->group(function () {
         [IssueVoucherController::class, 'approveByHead']
     )->name('voucher.head.approve');
 
+// 💡 NEW ROUTE FOR BULK APPROVAL
+    Route::post('/dept-head/store/requisitions/bulk-approve',
+        [IssueVoucherController::class, 'bulkApproveByHead']
+    )->name('voucher.head.approve.bulk');
+
+
+
     Route::get('/storeman/issues', [StoreIssueController::class, 'storeman_index'])
         ->name('voucher.storeman.index');
 
     Route::post('/storeman/issues/{voucher}', [StoreIssueController::class, 'storeman_issue'])
         ->name('voucher.storeman.issue');
+
+//    Route::get('/voucher/export/{employee}/{date}', [StoreIssueController::class, 'export'])->name('voucher.export');
+
+    // Route for the AJAX request to get the HTML preview
+    Route::get('/voucher/preview/{employee}/{date}', [StoreIssueController::class, 'previewVoucher'])
+        ->name('voucher.preview');
+
+// Route for the final PDF stream (used by the button inside the modal)
+    Route::get('/voucher/stream/{employee}/{date}', [StoreIssueController::class, 'streamVoucherPdf'])
+        ->name('voucher.stream.pdf');
 
     Route::get(
         '/store/products/{product}/stock-print',

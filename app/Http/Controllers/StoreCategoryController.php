@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Auth;
 
 class StoreCategoryController extends Controller
 {
-    public function index()
+    public function index0()
     {
         $categories = StoreCategory::all();
 //        dd($categories);
@@ -19,6 +19,33 @@ class StoreCategoryController extends Controller
             'categories' => $categories,
         ]);
     }
+
+    public function index(Request $request)
+    {
+        $categories = StoreCategory::all();
+
+        $products = [];
+
+        if ($request->filled('search')) {
+            $products = StoreProduct::with('storeCategory:id,category_name')
+                ->where('product_name', 'like', '%' . $request->search . '%')
+                ->orderBy('product_name')
+                ->limit(20)
+                ->get([
+                    'id',
+                    'store_category_id',
+                    'product_name',
+                    'stock_unit_number',
+                ]);
+        }
+
+        return inertia('Store/categoryandproduct', [
+            'categories' => $categories,
+            'products'   => $products,
+            'filters'    => $request->only('search'),
+        ]);
+    }
+
 
     /*public function products($id)
     {

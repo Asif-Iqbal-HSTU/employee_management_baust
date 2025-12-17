@@ -1,6 +1,8 @@
 import AppLayout from "@/layouts/app-layout";
 import { Head, useForm, Link, usePage } from "@inertiajs/react";
 import { useEffect } from "react";
+import SearchableSelect from "@/components/SearchableSelect";
+
 
 export default function VoucherPage({ products, vouchers, departments }: any) {
     const auth = usePage().props.auth.user;
@@ -36,7 +38,7 @@ export default function VoucherPage({ products, vouchers, departments }: any) {
 
                         <form onSubmit={submit} className="space-y-4">
                             {/* Product */}
-                            <div>
+                            {/*<div>
                                 <label className="block text-sm font-medium">Product</label>
                                 <select
                                     className="input"
@@ -51,7 +53,26 @@ export default function VoucherPage({ products, vouchers, departments }: any) {
                                 {errors.store_product_id && (
                                     <div className="text-red-600 text-xs">{errors.store_product_id}</div>
                                 )}
+                            </div>*/}
+                            <div>
+                                <label className="block text-sm font-medium">Product</label>
+
+                                <SearchableSelect
+                                    items={products}
+                                    value={data.store_product_id}
+                                    onChange={(val: any) => setData("store_product_id", val)}
+                                    placeholder="Select Product"
+                                    labelKey="product_name"
+                                    valueKey="id"
+                                />
+
+                                {errors.store_product_id && (
+                                    <div className="text-red-600 text-xs">
+                                        {errors.store_product_id}
+                                    </div>
+                                )}
                             </div>
+
 
                             {/* Department */}
                             <div>

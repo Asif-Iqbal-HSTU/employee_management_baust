@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableSelect';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
 import { Head, useForm, usePage } from '@inertiajs/react';
@@ -74,7 +75,6 @@ export default function ProductOfCategory({ products, category, vendors }: any) 
         vendor_name: '',
     });
 
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Store Products" />
@@ -86,10 +86,7 @@ export default function ProductOfCategory({ products, category, vendors }: any) 
 
                     {(auth.employee_id === '15302' || auth.employee_id === '19001') && (
                         <div className="flex gap-3">
-                            <button
-                                onClick={() => setShowAddModal(true)}
-                                className="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
-                            >
+                            <button onClick={() => setShowAddModal(true)} className="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">
                                 + Add Product
                             </button>
 
@@ -102,7 +99,6 @@ export default function ProductOfCategory({ products, category, vendors }: any) 
                         </div>
                     )}
                 </div>
-
 
                 {/* Product List */}
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -179,28 +175,18 @@ export default function ProductOfCategory({ products, category, vendors }: any) 
                                     type="text"
                                     className="w-full rounded-lg border p-2"
                                     value={vendorForm.data.vendor_name}
-                                    onChange={(e) =>
-                                        vendorForm.setData('vendor_name', e.target.value)
-                                    }
+                                    onChange={(e) => vendorForm.setData('vendor_name', e.target.value)}
                                 />
-                                {vendorForm.errors.vendor_name && (
-                                    <p className="text-sm text-red-500">
-                                        {vendorForm.errors.vendor_name}
-                                    </p>
-                                )}
+                                {vendorForm.errors.vendor_name && <p className="text-sm text-red-500">{vendorForm.errors.vendor_name}</p>}
                             </div>
 
-                            <button
-                                type="submit"
-                                className="rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700"
-                            >
+                            <button type="submit" className="rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700">
                                 Save Vendor
                             </button>
                         </form>
                     </div>
                 </div>
             )}
-
 
             {/* ----------------------------- ADD PRODUCT MODAL ----------------------------- */}
             {showAddModal && (
@@ -235,15 +221,23 @@ export default function ProductOfCategory({ products, category, vendors }: any) 
                             {/* Stock Unit Name */}
                             <div>
                                 <label className="block font-medium">Stock Unit Name</label>
-                                <input
-                                    type="text"
+                                <select
                                     className="w-full rounded-lg border p-2"
-                                    placeholder="Pieces / Kg / Liters / Box"
                                     value={data.stock_unit_name}
                                     onChange={(e) => setData('stock_unit_name', e.target.value)}
-                                />
+                                >
+                                    <option value="">Select Unit</option>
+                                    <option value="Dozen">Dozen</option>
+                                    <option value="Piece">Piece</option>
+                                    <option value="Box">Box</option>
+                                    <option value="Coil">Coil</option>
+                                    <option value="Ream">Ream</option>
+                                    <option value="Pair">Pair</option>
+                                    <option value="Set">Set</option>
+                                </select>
                                 {errors.stock_unit_name && <p className="text-sm text-red-500">{errors.stock_unit_name}</p>}
                             </div>
+
 
                             {/* Stock Unit Number */}
                             <div>
@@ -278,8 +272,8 @@ export default function ProductOfCategory({ products, category, vendors }: any) 
 
             {showReceiveModal && (
                 <div className="bg-opacity-40 fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-                    <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-lg">
-                        <div className="mb-4 flex items-center justify-between">
+                    <div className="flex max-h-[90vh] w-full max-w-3xl flex-col rounded-xl bg-white shadow-lg">
+                        <div className="mb-4 flex items-center justify-between border-b p-6">
                             <h2 className="text-lg font-bold">Receive Product Entry</h2>
                             <button onClick={() => setShowReceiveModal(false)}>✖</button>
                         </div>
@@ -295,7 +289,7 @@ export default function ProductOfCategory({ products, category, vendors }: any) 
                                     },
                                 });
                             }}
-                            className="space-y-4"
+                            className="space-y-4 overflow-y-auto p-6"
                         >
                             {/* Date of Receive */}
                             <div>
@@ -321,7 +315,7 @@ export default function ProductOfCategory({ products, category, vendors }: any) 
                                 {receiveForm.errors.from_whom && <p className="text-sm text-red-500">{receiveForm.errors.from_whom}</p>}
                             </div>*/}
 
-                            <div>
+                            {/*<div>
                                 <label className="block font-medium">From Whom</label>
 
                                 <select
@@ -345,8 +339,22 @@ export default function ProductOfCategory({ products, category, vendors }: any) 
                                         {receiveForm.errors.from_whom}
                                     </p>
                                 )}
-                            </div>
+                            </div>*/}
 
+                            <div>
+                                <label className="block font-medium">From Whom</label>
+
+                                <SearchableSelect
+                                    items={vendors}
+                                    value={receiveForm.data.from_whom}
+                                    onChange={(val: any) => receiveForm.setData('from_whom', val)}
+                                    placeholder="Select Vendor"
+                                    labelKey="vendor_name"
+                                    valueKey="vendor_name"
+                                />
+
+                                {receiveForm.errors.from_whom && <p className="text-sm text-red-500">{receiveForm.errors.from_whom}</p>}
+                            </div>
 
                             {/* Memo No */}
                             <div>
@@ -526,190 +534,185 @@ export default function ProductOfCategory({ products, category, vendors }: any) 
 
             {showPreviewModal && previewProduct && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-                    <div className="max-h-[90vh] w-full max-w-6xl overflow-auto rounded-xl bg-white p-6 shadow-lg">
-                        <div className="mb-3 flex justify-end gap-2">
-                            <a
-                                href={route('store.product.stock.print', previewProduct.id)}
-                                target="_blank"
-                                className="rounded bg-blue-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-blue-700"
-                            >
-                                🖨 Print Stock Register
-                            </a>
-                        </div>
+                    <div className="flex max-h-[90vh] w-full max-w-6xl flex-col rounded-xl bg-white shadow-lg">
+                        <div className="border-b p-6">
+                            <div className="mb-3 flex justify-end gap-2">
+                                <a
+                                    href={route('store.product.stock.print', previewProduct.id)}
+                                    target="_blank"
+                                    className="rounded bg-blue-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-blue-700"
+                                >
+                                    🖨 Print Stock Register
+                                </a>
+                            </div>
 
-                        {/* Header */}
-                        <div className="mb-6 text-center">
-                            <h1 className="text-lg font-bold">Bangladesh Army University of Science and Technology (BAUST)</h1>
-                            <p className="text-sm font-semibold underline">Stock Register</p>
-                        </div>
+                            <div className="text-center">
+                                <h1 className="text-lg font-bold">Bangladesh Army University of Science and Technology (BAUST)</h1>
+                                <p className="text-sm font-semibold underline">Stock Register</p>
+                            </div>
 
-                        {/* Basic Info */}
-                        <div className="mb-4 grid grid-cols-3 gap-4 text-sm">
-                            <p>
-                                <b>Name of Article:</b> {previewProduct.product_name}
-                            </p>
-                            <p>
-                                <b>Unit:</b> {previewProduct.stock_unit_name}
-                            </p>
-                            <p>
-                                <b>Budget Code:</b> —
-                            </p>
+                            <div className="mt-4 grid grid-cols-3 gap-4 text-sm">
+                                <p>
+                                    <b>Name of Article:</b> {previewProduct.product_name}
+                                </p>
+                                <p>
+                                    <b>Unit:</b> {previewProduct.stock_unit_name}
+                                </p>
+                                <p>
+                                    <b>Budget Code:</b> —
+                                </p>
+                            </div>
                         </div>
 
                         {/* Table */}
-                        <div className="overflow-x-auto">
-                            <table className="w-full border border-black text-xs">
-                                <thead>
-                                    <tr className="border border-black">
-                                        <th colSpan={7} className="border border-black p-1 text-center font-bold">
-                                            RECEIVED ARTICLES
-                                        </th>
-                                        <th colSpan={8} className="border border-black p-1 text-center font-bold">
-                                            ISSUE ARTICLE
-                                        </th>
-                                    </tr>
+                        <div className="flex-1 overflow-auto p-6">
+                            <div className="overflow-x-auto">
+                                <table className="w-full border border-black text-xs">
+                                    <thead>
+                                        <tr className="border border-black">
+                                            <th colSpan={7} className="border border-black p-1 text-center font-bold">
+                                                RECEIVED ARTICLES
+                                            </th>
+                                            <th colSpan={8} className="border border-black p-1 text-center font-bold">
+                                                ISSUE ARTICLE
+                                            </th>
+                                        </tr>
 
-                                    <tr>
-                                        {/* Received */}
-                                        <th className="border p-1">Date of Receiving</th>
-                                        <th className="border p-1">From Whom Received (Memo No & Date)</th>
-                                        <th className="border p-1">Description</th>
-                                        <th className="border p-1">Office Order No</th>
-                                        <th className="border p-1">Rate</th>
-                                        <th className="border p-1">Quantity</th>
-                                        <th className="border p-1">Warranty Info</th>
+                                        <tr>
+                                            {/* Received */}
+                                            <th className="border p-1">Date of Receiving</th>
+                                            <th className="border p-1">From Whom Received (Memo No & Date)</th>
+                                            <th className="border p-1">Description</th>
+                                            <th className="border p-1">Office Order No</th>
+                                            <th className="border p-1">Rate</th>
+                                            <th className="border p-1">Quantity</th>
+                                            <th className="border p-1">Warranty Info</th>
 
-                                        {/* Issue */}
-                                        <th className="border p-1">Date of Issue</th>
-                                        <th className="border p-1">To Whom Issued</th>
-                                        <th className="border p-1">Issue Voucher No & Date</th>
-                                        <th className="border p-1">Qty Issued</th>
-                                        <th className="border p-1">Balance Stock</th>
-                                        <th className="border p-1">Receiver Name, Dept & Office</th>
-                                        <th className="border p-1">Officer In Charge</th>
-                                        <th className="border p-1">Remarks</th>
-                                    </tr>
-                                </thead>
+                                            {/* Issue */}
+                                            <th className="border p-1">Date of Issue</th>
+                                            <th className="border p-1">To Whom Issued</th>
+                                            <th className="border p-1">Issue Voucher No & Date</th>
+                                            <th className="border p-1">Qty Issued</th>
+                                            <th className="border p-1">Balance Stock</th>
+                                            <th className="border p-1">Receiver Name, Dept & Office</th>
+                                            <th className="border p-1">Officer In Charge</th>
+                                            <th className="border p-1">Remarks</th>
+                                        </tr>
+                                    </thead>
 
-                                <tbody>
-                                {(() => {
-                                    let balance = 0;
+                                    <tbody>
+                                        {(() => {
+                                            let balance = 0;
 
-                                    // 🔹 1. Normalize receives
-                                    const receiveEvents = previewProduct.receives.map((r: any) => ({
-                                        type: 'receive',
-                                        date: r.date_of_receive,
-                                        data: r,
-                                    }));
+                                            // 🔹 1. Normalize receives
+                                            const receiveEvents = previewProduct.receives.map((r: any) => ({
+                                                type: 'receive',
+                                                date: r.date_of_receive,
+                                                data: r,
+                                            }));
 
-                                    // 🔹 2. Normalize issues
-                                    const issueEvents = previewProduct.issues.map((i: any) => ({
-                                        type: 'issue',
-                                        date: i.date_of_issue,
-                                        data: i,
-                                    }));
+                                            // 🔹 2. Normalize issues
+                                            const issueEvents = previewProduct.issues.map((i: any) => ({
+                                                type: 'issue',
+                                                date: i.date_of_issue,
+                                                data: i,
+                                            }));
 
-                                    // 🔹 3. Merge + sort chronologically
-                                    const events = [...receiveEvents, ...issueEvents].sort(
-                                        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-                                    );
-
-                                    if (events.length === 0) {
-                                        return (
-                                            <tr>
-                                                <td colSpan={15} className="border p-2 text-center">
-                                                    No data yet
-                                                </td>
-                                            </tr>
-                                        );
-                                    }
-
-                                    // 🔹 4. Render rows in time order
-                                    return events.map((event, idx) => {
-                                        /* ================= RECEIVE ================= */
-                                        if (event.type === 'receive') {
-                                            const r = event.data;
-                                            balance += Number(r.quantity || 0);
-
-                                            return (
-                                                <tr key={`receive-${idx}`}>
-                                                    {/* RECEIVED */}
-                                                    <td className="border p-1">{r.date_of_receive}</td>
-                                                    <td className="border p-1">
-                                                        {r.from_whom}
-                                                        <br />
-                                                        <span className="text-[10px]">
-                                Memo: {r.memo_no} ({r.memo_date})
-                            </span>
-                                                    </td>
-                                                    <td className="border p-1">{previewProduct.product_name}</td>
-                                                    <td className="border p-1">{r.office_order_no}</td>
-                                                    <td className="border p-1 text-right">{r.rate}</td>
-                                                    <td className="border p-1 text-right">{r.quantity}</td>
-                                                    <td className="border p-1">{r.warranty_information}</td>
-
-                                                    {/* ISSUE (EMPTY) */}
-                                                    <td className="border p-1"></td>
-                                                    <td className="border p-1"></td>
-                                                    <td className="border p-1"></td>
-                                                    <td className="border p-1"></td>
-                                                    <td className="border p-1 text-right">{balance}</td>
-                                                    <td className="border p-1"></td>
-                                                    <td className="border p-1"></td>
-                                                    <td className="border p-1"></td>
-                                                </tr>
+                                            // 🔹 3. Merge + sort chronologically
+                                            const events = [...receiveEvents, ...issueEvents].sort(
+                                                (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
                                             );
-                                        }
 
-                                        /* ================= ISSUE ================= */
-                                        const i = event.data;
-                                        balance -= Number(i.issued_quantity || 0);
+                                            if (events.length === 0) {
+                                                return (
+                                                    <tr>
+                                                        <td colSpan={15} className="border p-2 text-center">
+                                                            No data yet
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            }
 
-                                        return (
-                                            <tr key={`issue-${idx}`}>
-                                                {/* RECEIVED (EMPTY) */}
-                                                <td className="border p-1"></td>
-                                                <td className="border p-1"></td>
-                                                <td className="border p-1"></td>
-                                                <td className="border p-1"></td>
-                                                <td className="border p-1"></td>
-                                                <td className="border p-1"></td>
-                                                <td className="border p-1"></td>
+                                            // 🔹 4. Render rows in time order
+                                            return events.map((event, idx) => {
+                                                /* ================= RECEIVE ================= */
+                                                if (event.type === 'receive') {
+                                                    const r = event.data;
+                                                    balance += Number(r.quantity || 0);
 
-                                                {/* ISSUE */}
-                                                <td className="border p-1">{i.date_of_issue}</td>
-                                                <td className="border p-1">
-                                                    {i.voucher?.requisitioned_by?.name}
-                                                </td>
-                                                <td className="border p-1">
-                                                    {i.voucher?.sl_no}
-                                                    <br />
-                                                    <span className="text-[10px]">
-                            {i.voucher?.date}
-                        </span>
-                                                </td>
-                                                <td className="border p-1 text-right">{i.issued_quantity}</td>
-                                                <td className="border p-1 text-right">{balance}</td>
-                                                <td className="border p-1">
-                                                    {i.voucher?.receiver}
-                                                    <br />
-                                                    <span className="text-[10px]">
-                            {i.voucher?.department?.dept_name}
-                        </span>
-                                                </td>
-                                                <td className="border p-1"></td>
-                                                <td className="border p-1"></td>
-                                            </tr>
-                                        );
-                                    });
-                                })()}
-                                </tbody>
+                                                    return (
+                                                        <tr key={`receive-${idx}`}>
+                                                            {/* RECEIVED */}
+                                                            <td className="border p-1">{r.date_of_receive}</td>
+                                                            <td className="border p-1">
+                                                                {r.from_whom}
+                                                                <br />
+                                                                <span className="text-[10px]">
+                                                                    Memo: {r.memo_no} ({r.memo_date})
+                                                                </span>
+                                                            </td>
+                                                            <td className="border p-1">{previewProduct.product_name}</td>
+                                                            <td className="border p-1">{r.office_order_no}</td>
+                                                            <td className="border p-1 text-right">{r.rate}</td>
+                                                            <td className="border p-1 text-right">{r.quantity}</td>
+                                                            <td className="border p-1">{r.warranty_information}</td>
 
-                            </table>
+                                                            {/* ISSUE (EMPTY) */}
+                                                            <td className="border p-1"></td>
+                                                            <td className="border p-1"></td>
+                                                            <td className="border p-1"></td>
+                                                            <td className="border p-1"></td>
+                                                            <td className="border p-1 text-right">{balance}</td>
+                                                            <td className="border p-1"></td>
+                                                            <td className="border p-1"></td>
+                                                            <td className="border p-1"></td>
+                                                        </tr>
+                                                    );
+                                                }
+
+                                                /* ================= ISSUE ================= */
+                                                const i = event.data;
+                                                balance -= Number(i.issued_quantity || 0);
+
+                                                return (
+                                                    <tr key={`issue-${idx}`}>
+                                                        {/* RECEIVED (EMPTY) */}
+                                                        <td className="border p-1"></td>
+                                                        <td className="border p-1"></td>
+                                                        <td className="border p-1"></td>
+                                                        <td className="border p-1"></td>
+                                                        <td className="border p-1"></td>
+                                                        <td className="border p-1"></td>
+                                                        <td className="border p-1"></td>
+
+                                                        {/* ISSUE */}
+                                                        <td className="border p-1">{i.date_of_issue}</td>
+                                                        <td className="border p-1">{i.voucher?.requisitioned_by?.name}</td>
+                                                        <td className="border p-1">
+                                                            {i.voucher?.sl_no}
+                                                            <br />
+                                                            <span className="text-[10px]">{i.voucher?.date}</span>
+                                                        </td>
+                                                        <td className="border p-1 text-right">{i.issued_quantity}</td>
+                                                        <td className="border p-1 text-right">{balance}</td>
+                                                        <td className="border p-1">
+                                                            {i.voucher?.receiver}
+                                                            <br />
+                                                            <span className="text-[10px]">{i.voucher?.department?.dept_name}</span>
+                                                        </td>
+                                                        <td className="border p-1"></td>
+                                                        <td className="border p-1"></td>
+                                                    </tr>
+                                                );
+                                            });
+                                        })()}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
 
                         {/* Footer */}
-                        <div className="mt-6 text-right">
+                        <div className="border-t p-4 text-right">
                             <button
                                 onClick={() => setShowPreviewModal(false)}
                                 className="rounded-lg bg-red-600 px-4 py-2 text-white hover:bg-red-700"
@@ -717,6 +720,7 @@ export default function ProductOfCategory({ products, category, vendors }: any) 
                                 Close
                             </button>
                         </div>
+
                     </div>
                 </div>
             )}

@@ -105,6 +105,57 @@ class IssueVoucherController extends Controller
         return back()->with('success', 'Voucher approved successfully.');
     }
 
+    /**
+     * Bulk approves vouchers for a specific employee on a specific date.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function bulkApproveByHead(Request $request)
+    {
+
+        //dd($request->all());
+        // 1. Validate the request data
+        $request->validate([
+            'employee_id' => 'required|integer',
+            'date' => 'required|date_format:Y-m-d', // Assuming 'Y-m-d' date format
+        ]);
+
+        $employeeId = $request->input('employee_id');
+        $date = $request->input('date');
+
+        $user = Auth::user();
+
+        // 2. Determine the department ID of the current head
+        $deptHead = DB::table('dept_heads')
+            ->where('employee_id', $user->employee_id)
+            ->first();
+
+        if (!$deptHead) {
+            // Should be caught earlier, but good to have a check
+            return back()->with('error', 'Authentication error: Not a department head.');
+        }
+
+        $departmentId = $deptHead->department_id;
+
+        // 3. Perform the bulk update
+        $updatedCount = IssueVoucher::where('department_id', $departmentId)
+            ->where('requisition_employee_id', $employeeId)
+            ->where('date', $date)
+            ->where('allowed_by_head', 'No') // Only update pending vouchers
+            ->update([
+                'allowed_by_head' => 'Yes',
+                // You might also want to set an approved_by_head_id/timestamp here
+                // 'approved_by_head_id' => $user->employee_id,
+            ]);
+
+        if ($updatedCount > 0) {
+            return back()->with('success', "$updatedCount vouchers approved successfully for employee $employeeId on $date.");
+        }
+
+        return back()->with('error', 'No pending vouchers found to approve with the given criteria.');
+    }
+
 
 
 }
