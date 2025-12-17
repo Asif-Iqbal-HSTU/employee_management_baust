@@ -225,6 +225,7 @@ export default function ProductOfCategory({ products, category, vendors }: any) 
                                     className="w-full rounded-lg border p-2"
                                     value={data.stock_unit_name}
                                     onChange={(e) => setData('stock_unit_name', e.target.value)}
+                                    size={5} // <-- shows 5 options at once, scrollable if more
                                 >
                                     <option value="">Select Unit</option>
                                     <option value="Dozen">Dozen</option>
@@ -234,9 +235,13 @@ export default function ProductOfCategory({ products, category, vendors }: any) 
                                     <option value="Ream">Ream</option>
                                     <option value="Pair">Pair</option>
                                     <option value="Set">Set</option>
+                                    <option value="Book">Book</option>
+                                    <option value="Packet">Packet</option>
+                                    <option value="Litre">Litre</option>
                                 </select>
                                 {errors.stock_unit_name && <p className="text-sm text-red-500">{errors.stock_unit_name}</p>}
                             </div>
+
 
 
                             {/* Stock Unit Number */}
