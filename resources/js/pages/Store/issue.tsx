@@ -9,6 +9,18 @@ export default function StoremanIssue({ pendingGrouped, issuedGrouped }: any) {
     // 💡 New state for PDF preview modal
     const [preview, setPreview] = useState<{ employee_id: number, date: string, html: string } | null>(null);
     const [previewLoading, setPreviewLoading] = useState(false);
+// 🔍 Filters for Issued Items
+    const [filterDate, setFilterDate] = useState("");
+    const [searchName, setSearchName] = useState("");
+
+    const filteredIssued = issuedGrouped.filter((group: any) => {
+        const matchDate = filterDate ? group.date === filterDate : true;
+        const matchName = searchName
+            ? group.employee_name?.toLowerCase().includes(searchName.toLowerCase())
+            : true;
+
+        return matchDate && matchName;
+    });
 
 
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -96,10 +108,41 @@ export default function StoremanIssue({ pendingGrouped, issuedGrouped }: any) {
 
 
                 {/* RIGHT — ISSUED */}
+                {/* RIGHT — ISSUED */}
                 <div className="bg-white p-5 rounded shadow">
                     <h2 className="font-semibold mb-3">Issued Items</h2>
 
-                    {issuedGrouped.map((group, idx) => (
+                    {/* 🔍 Filters */}
+                    <div className="flex flex-wrap gap-3 mb-4">
+                        <input
+                            type="date"
+                            value={filterDate}
+                            onChange={(e) => setFilterDate(e.target.value)}
+                            className="border rounded px-3 py-1 text-sm"
+                        />
+
+                        <input
+                            type="text"
+                            placeholder="Search by employee name"
+                            value={searchName}
+                            onChange={(e) => setSearchName(e.target.value)}
+                            className="border rounded px-3 py-1 text-sm w-full md:w-64"
+                        />
+
+                        {(filterDate || searchName) && (
+                            <button
+                                onClick={() => {
+                                    setFilterDate("");
+                                    setSearchName("");
+                                }}
+                                className="text-sm text-red-600 underline"
+                            >
+                                Clear
+                            </button>
+                        )}
+                    </div>
+
+                    {filteredIssued.map((group, idx) => (
                         <div key={idx} className="mb-4">
                             <h3 className="font-semibold">{group.employee_name} — {group.date}</h3>
                             <table className="w-full border mb-2">

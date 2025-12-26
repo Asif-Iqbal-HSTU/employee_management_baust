@@ -1,7 +1,7 @@
 import AttendanceCalendar from '@/components/AttendanceCalendar';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
-import { Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import axios from 'axios';
 import { useMemo, useState } from 'react';
 import { LoaderCircle } from 'lucide-react';
@@ -37,6 +37,20 @@ export default function Attendance({ date, report, department }: Props) {
     const [selectedEmp, setSelectedEmp] = useState<ReportRow | null>(null);
     const [loading, setLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const [selectedDate, setSelectedDate] = useState(date);
+    const handleDateChange = (newDate: string) => {
+        setSelectedDate(newDate);
+
+        router.get(
+            route('departments.attendance', department.id),
+            { date: newDate },
+            {
+                preserveState: true,
+                preserveScroll: true,
+            }
+        );
+    };
+
 
     const [selectedEmployee, setSelectedEmployee] = useState(null);
     const [modalOpen, setModalOpen] = useState(false);
@@ -94,7 +108,22 @@ export default function Attendance({ date, report, department }: Props) {
 
             <div className="p-6">
                 <h1 className="mb-2 text-2xl font-bold">{department.name}</h1>
-                <h2 className="mb-6 text-xl font-bold">Date: {date}</h2>
+                {/*<h2 className="mb-6 text-xl font-bold">Date: {date}</h2>*/}
+                <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <h2 className="text-xl font-bold">
+                        Date: <span className="text-blue-600">{date}</span>
+                    </h2>
+
+                    <div className="flex items-center gap-2">
+                        <label className="text-sm font-medium text-gray-600">Select Date</label>
+                        <input
+                            type="date"
+                            value={selectedDate}
+                            onChange={(e) => handleDateChange(e.target.value)}
+                            className="rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                        />
+                    </div>
+                </div>
 
                 {/* ----------- SUMMARY ----------- */}
                 <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-2">

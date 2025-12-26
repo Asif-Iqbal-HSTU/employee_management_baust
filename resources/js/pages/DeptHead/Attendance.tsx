@@ -3,8 +3,9 @@ import EmployeeStatusModal from '@/Components/EmployeeStatusModal';
 import EmployeeAbsentStatusModal from '@/Components/EmployeeAbsentStatusModal';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
-import { Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
+import { Pencil } from 'lucide-react';
 
 type ReportRow = {
     employee_id: number | string;
@@ -35,6 +36,20 @@ export default function Attendance({ date, report, department }: Props) {
     const [modalOpen, setModalOpen] = useState(false);
     const [statusModalOpen, setStatusModalOpen] = useState(false);
     const [statusAbsentModalOpen, setAbsentStatusModalOpen] = useState(false);
+    const [selectedDate, setSelectedDate] = useState(date);
+    const handleDateChange = (newDate: string) => {
+        setSelectedDate(newDate);
+
+        router.get(
+            route('departments.attendance', department.id),
+            { date: newDate },
+            {
+                preserveState: true,
+                preserveScroll: true,
+            }
+        );
+    };
+
 
     const openEmployeeModal = (emp) => {
         setSelectedEmployee(emp);
@@ -78,7 +93,22 @@ export default function Attendance({ date, report, department }: Props) {
 
             <div className="p-6">
                 <h1 className="mb-2 text-2xl font-bold">{department.name}</h1>
-                <h2 className="mb-6 text-xl font-bold">Date: {date}</h2>
+                {/*<h2 className="mb-6 text-xl font-bold">Date: {date}</h2>*/}
+                <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <h2 className="text-xl font-bold">
+                        Date: <span className="text-blue-600">{date}</span>
+                    </h2>
+
+                    <div className="flex items-center gap-2">
+                        <label className="text-sm font-medium text-gray-600">Select Date</label>
+                        <input
+                            type="date"
+                            value={selectedDate}
+                            onChange={(e) => handleDateChange(e.target.value)}
+                            className="rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                        />
+                    </div>
+                </div>
 
                 {/* ----------- SUMMARY ----------- */}
                 <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -91,21 +121,34 @@ export default function Attendance({ date, report, department }: Props) {
                                     <tr className="bg-gray-100">
                                         <th className="border px-2 py-1">ID</th>
                                         <th className="border px-2 py-1">Name</th>
+                                        <th className="border px-2 py-1">Designation</th>
                                         <th className="border px-2 py-1">In Time</th>
                                         <th className="border px-2 py-1">Remarks</th>
+                                        <th className="border px-2 py-1 text-center">Action</th>
+
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {lateEmployees.map((emp) => (
                                         <tr
                                             key={emp.employee_id}
-                                            onClick={() => openLateEmployeeModal(emp)}
+                                            // onClick={() => openLateEmployeeModal(emp)}
                                             className="hover:bg-gray-50"
                                         >
                                             <td className="border px-2 py-1">{emp.employee_id}</td>
                                             <td className="border px-2 py-1">{emp.name}</td>
+                                            <td className="border px-2 py-1">{emp.designation}</td>
                                             <td className="border px-2 py-1">{emp.in_time}</td>
                                             <td className="border px-2 py-1">{emp.remarks}</td>
+                                            <td className="border px-2 py-1 text-center">
+                                                <button
+                                                    onClick={() => openLateEmployeeModal(emp)}
+                                                    className="inline-flex items-center justify-center rounded-md p-1 text-blue-600 hover:bg-blue-100"
+                                                    title="View / Edit Attendance"
+                                                >
+                                                    <Pencil className="h-4 w-4" />
+                                                </button>
+                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -160,18 +203,28 @@ export default function Attendance({ date, report, department }: Props) {
                                         <th className="border px-2 py-1">ID</th>
                                         <th className="border px-2 py-1">Name</th>
                                         <th className="border px-2 py-1">Designation</th>
+                                        <th className="border px-2 py-1 text-center">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {absentEmployees.map((emp) => (
                                         <tr
                                             key={emp.employee_id}
-                                            onClick={() => openAbsentEmployeeModal(emp)}
+                                            // onClick={() => openAbsentEmployeeModal(emp)}
                                             className="hover:bg-gray-50"
                                         >
                                             <td className="border px-2 py-1">{emp.employee_id}</td>
                                             <td className="border px-2 py-1">{emp.name}</td>
                                             <td className="border px-2 py-1">{emp.designation}</td>
+                                            <td className="border px-2 py-1 text-center">
+                                                <button
+                                                    onClick={() => openAbsentEmployeeModal(emp)}
+                                                    className="inline-flex items-center justify-center rounded-md p-1 text-blue-600 hover:bg-blue-100"
+                                                    title="View / Edit Attendance"
+                                                >
+                                                    <Pencil className="h-4 w-4" />
+                                                </button>
+                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>

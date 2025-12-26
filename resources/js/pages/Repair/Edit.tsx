@@ -3,6 +3,7 @@ import { useForm, Head } from "@inertiajs/react";
 import AppLayout from "@/layouts/app-layout";
 
 export default function Edit({ request }: any) {
+    console.log(request);
     const { data, setData, put, processing } = useForm({
         job_id: request.job_id || "",
         date_received: request.date_received || "",

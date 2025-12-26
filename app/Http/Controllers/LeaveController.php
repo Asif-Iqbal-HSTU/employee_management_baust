@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\DailyAttendance;
 use App\Models\Leave;
+use App\Models\User;
 use App\Models\Worklog;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -123,7 +124,7 @@ class LeaveController extends Controller
         return back()->with('success', 'Leave request denied.');
     }
 
-    public function store(Request $request)
+    public function store0(Request $request)
     {
         $request->validate([
             'leave_type' => 'required|in:Medical Leave,Casual Leave',
@@ -147,6 +148,57 @@ class LeaveController extends Controller
 
         return redirect()->route('leave.index')->with('success', 'Leave Requested Successfully');
     }
+
+    public function store(Request $request)
+    {
+        $request->validate([
+            'leave_type' => 'required|in:Medical Leave,Casual Leave,Earned Leave,Duty Leave',
+            'startdate'  => 'required|date',
+            'enddate'    => 'required|date|after_or_equal:startdate',
+            'reason'     => 'nullable|string',
+            'replace'    => 'nullable|string',
+            'medical_file' => [
+                'required_if:leave_type,Medical Leave',
+                'file',
+                'mimes:pdf,jpg,jpeg,png',
+                'max:2048', // 2MB
+            ],
+        ]);
+
+
+        $user = Auth::user();
+
+        $medicalPath = null;
+
+        if ($request->hasFile('medical_file')) {
+            $medicalPath = $request->file('medical_file')
+                ->store('medical-certificates', 'public');
+        }
+
+        // Create the leave
+        $leave = Leave::create([
+            'employee_id' => $user->employee_id,
+            'start_date'  => $request->startdate,
+            'end_date'    => $request->enddate,
+            'type'        => $request->leave_type,
+            'reason'      => $request->reason,
+            'replace'     => $request->replace,
+            'medical_file'=> $medicalPath,
+            'status'      => 'Requested to Head',
+        ]);
+
+        // 🔔 Notify the department head
+        $deptHead = User::whereHas('deptHead', function($q) use ($user) {
+            $q->where('department_id', $user->assignment->department_id ?? 0);
+        })->first();
+
+//        if ($deptHead) {
+//            $deptHead->notify(new NewLeaveRequest($user->name, $leave->id));
+//        }
+
+        return redirect()->route('leave.index')->with('success', 'Leave Requested Successfully');
+    }
+
 
 
 }

@@ -17,7 +17,7 @@ class RepairRequestController extends Controller
         ]);
     }
 
-    public function index()
+    public function index1()
     {
         $user = auth()->user();
 
@@ -35,6 +35,28 @@ class RepairRequestController extends Controller
             'requests' => $requests,
         ]);
     }
+
+    public function index(Request $request)
+    {
+        $user = auth()->user();
+
+        if ($request->has('mine')) {
+            $requests = RepairRequest::where('employee_id', $user->employee_id)
+                ->latest()
+                ->paginate(10);
+        } elseif ($user->employee_id === '25052') {
+            $requests = RepairRequest::latest()->paginate(10);
+        } else {
+            $requests = RepairRequest::where('employee_id', $user->employee_id)
+                ->latest()
+                ->paginate(10);
+        }
+
+        return Inertia::render('Repair/Index', [
+            'requests' => $requests,
+        ]);
+    }
+
 
     public function create()
     {

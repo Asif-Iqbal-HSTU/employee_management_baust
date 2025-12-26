@@ -16,7 +16,7 @@ export function NavMain({ items = [], title = "Platform" }: NavMainProps) {
 
             <SidebarMenu>
                 {items.map((item) => (
-                    <SidebarMenuItem key={item.title}>
+                    <SidebarMenuItem key={item.key}>
                         <SidebarMenuButton
                             asChild
                             isActive={item.href === page.url}

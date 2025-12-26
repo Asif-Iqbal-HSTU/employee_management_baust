@@ -20,6 +20,7 @@ return new class extends Migration
             $table->text('type')->nullable();
             $table->text('replace')->nullable();
             $table->text('status')->nullable();
+            $table->string('medical_file')->nullable();
 //            $table->enum('late_status', ['late', 'on_time', 'holiday', 'leave', 'weekend', 'early_leave', 'absent'])->nullable();
             $table->timestamps();
 

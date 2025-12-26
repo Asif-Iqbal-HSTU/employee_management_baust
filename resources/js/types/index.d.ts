@@ -1,5 +1,6 @@
 import { LucideIcon } from 'lucide-react';
 import type { Config } from 'ziggy-js';
+import React from 'react';
 
 export interface Auth {
     user: User;
@@ -16,7 +17,8 @@ export interface NavGroup {
 }
 
 export interface NavItem {
-    title: string;
+    key: string;
+    title: string | React.ReactNode;
     href: string;
     icon?: LucideIcon | null;
     isActive?: boolean;
