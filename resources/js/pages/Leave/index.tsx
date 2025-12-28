@@ -1,14 +1,14 @@
 import AppLayout from '@/layouts/app-layout';
 import { Head, router } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
-import { CalendarCheck, HeartPulse, PlusCircle } from 'lucide-react';
+import { CalendarCheck, HeartPulse, PlusCircle, Blocks } from 'lucide-react';
 import type { BreadcrumbItem } from '@/types';
 import { useForm } from '@inertiajs/react';
 import SearchableSelect from '@/components/SearchableSelect';
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Leave Management', href: '/leave-management' }];
 
-export default function Leave({ leaves, remainingCasual, remainingMedical, employees }: any) {
+export default function Leave({ leaves, remainingCasual, remainingMedical, remainingEarned, employees }: any) {
 
     console.log(remainingCasual);
     console.log(remainingMedical);
@@ -106,6 +106,15 @@ export default function Leave({ leaves, remainingCasual, remainingMedical, emplo
                         </div>
                     </div>
 
+                    {/* Earned Leave Card */}
+                    <div className="bg-white rounded-xl shadow p-5 flex items-center gap-4">
+                        <Blocks className="h-10 w-10 text-purple-600" />
+                        <div>
+                            <p className="text-sm text-gray-500">Earned Leave Remaining</p>
+                            <p className="text-2xl font-bold text-purple-600">{remainingEarned}</p>
+                        </div>
+                    </div>
+
                     {/* Apply Leave Card */}
                     <div
                         onClick={() => setShowModal(true)}
@@ -197,7 +206,7 @@ export default function Leave({ leaves, remainingCasual, remainingMedical, emplo
                         <option value="Casual Leave">Casual Leave</option>
                             <option value="Medical Leave">Medical Leave</option>
                             <option value="Earned Leave">Earned Leave</option>
-                            <option value="Duty Leave">Duty Leave</option>
+                            {/*<option value="Duty Leave">Duty Leave</option>*/}
                         </select>
                         {errors.leave_type && (
                             <p className="text-red-600 text-sm mb-2">{errors.leave_type}</p>

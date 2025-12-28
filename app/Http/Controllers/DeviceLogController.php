@@ -7,6 +7,8 @@ use App\Models\DeviceLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use App\Services\DutyTimeResolver;
+use App\Services\AttendanceStatusResolver;
 
 class DeviceLogController extends Controller
 {
@@ -258,7 +260,7 @@ class DeviceLogController extends Controller
                     ->first();
 
 
-                $officeIn  = $rule?->in_time ?? '08:00:00';
+                /*$officeIn  = $rule?->in_time ?? '08:00:00';
                 $officeOut = $rule?->out_time ?? '14:30:00';
 
                 // -------------------------------------
@@ -281,7 +283,27 @@ class DeviceLogController extends Controller
                         'out_time' => $out,
                         'status'   => $status ? implode(', ', $status) : 'ok',
                     ]
+                );*/
+
+                $timing = DutyTimeResolver::resolve($empId, $date);
+
+                $status = AttendanceStatusResolver::resolve(
+                    $in,
+                    $out,
+                    $timing['start'],
+                    $timing['end']
                 );
+
+                DailyAttendance::updateOrCreate(
+                    ['employee_id' => $empId, 'date' => $date],
+                    [
+                        'in_time'  => $in,
+                        'out_time' => $out,
+                        'status'   => $status,
+                        'remarks'  => $timing['source'], // office / roster
+                    ]
+                );
+
             }
         }
 

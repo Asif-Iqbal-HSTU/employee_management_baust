@@ -31,6 +31,7 @@ class LeaveController extends Controller
         // Default yearly limits
         $defaultCasual  = 20;
         $defaultMedical = 15;
+        $defaultEarned = 15;
 
         // Used casual leave days
         $usedCasual = $leaves
@@ -44,6 +45,14 @@ class LeaveController extends Controller
         // Used medical leave days
         $usedMedical = $leaves
             ->where('type', 'Medical Leave')
+            ->whereIn('status', ['Sent to Registrar', 'Approved by Registrar'])
+            ->sum(fn ($leave) =>
+                Carbon::parse($leave->start_date)
+                    ->diffInDays(Carbon::parse($leave->end_date)) + 1
+            );
+// Used medical leave days
+        $usedEarned = $leaves
+            ->where('type', 'Earned Leave')
             ->whereIn('status', ['Sent to Registrar', 'Approved by Registrar'])
             ->sum(fn ($leave) =>
                 Carbon::parse($leave->start_date)
@@ -66,8 +75,10 @@ class LeaveController extends Controller
             'leaves'           => $leaves,
             'remainingCasual'  => max(0, $defaultCasual - $usedCasual),
             'remainingMedical' => max(0, $defaultMedical - $usedMedical),
+            'remainingEarned' => max(0, $defaultEarned - $usedEarned),
             'usedCasual'       => $usedCasual,
             'usedMedical'      => $usedMedical,
+            'usedEarned'       => $usedEarned,
             'employees'        => $employees,
         ]);
     }

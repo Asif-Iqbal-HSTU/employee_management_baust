@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AttendanceMatrixController;
 use App\Http\Controllers\DailyAttendanceController;
+use App\Http\Controllers\DutyRosterController;
 use App\Http\Controllers\IssueVoucherController;
 use App\Http\Controllers\LeaveController;
 use App\Http\Controllers\OfficeTimeController;
@@ -438,6 +439,9 @@ Route::post('/office-time/store', [OfficeTimeController::class, 'store'])
 
 
 Route::post('/reports/late-summary/download', [ReportController::class, 'downloadPdf']);
+
+Route::get('/duty-roster', [DutyRosterController::class, 'index'])->name('duty.roster');
+Route::post('/duty-roster', [DutyRosterController::class, 'store'])->name('duty.roster.store');
 
 
 require __DIR__.'/settings.php';
