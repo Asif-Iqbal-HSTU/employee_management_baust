@@ -242,7 +242,86 @@ class AttendanceController extends Controller
         ]);
     }
 
-    public function showLateSummaryReport()
+    public function showLateSummaryReport(Request $request)
+    {
+        // ✅ Take date from request OR fallback to today
+        $date = $request->input('date', now()->toDateString());
+
+        $summaryTable = [];
+        $lateDetails = [];
+        $absentDetails = [];
+
+        $departments = DB::table('departments')->get();
+
+        foreach ($departments as $dept) {
+            $deptId = $dept->id;
+            $departmentName = $dept->dept_name;
+
+            $employees = DB::table('users')
+                ->join('user_assignments', 'users.employee_id', '=', 'user_assignments.employee_id')
+                ->leftJoin('designations', 'designations.id', '=', 'user_assignments.designation_id')
+                ->where('user_assignments.department_id', $deptId)
+                ->select('users.employee_id', 'users.name', 'designations.designation_name as designation')
+                ->get();
+
+            $totalCount = $employees->count();
+            $lateCount = 0;
+            $lateEmployees = [];
+            $absentEmployees = [];
+
+            foreach ($employees as $employee) {
+                $attendance = \App\Models\DailyAttendance::where('employee_id', $employee->employee_id)
+                    ->where('date', $date)
+                    ->first();
+
+                if ($attendance) {
+                    if ($attendance->status && str_contains($attendance->status, 'late entry')) {
+                        $lateCount++;
+                        $lateEmployees[] = (object) [
+                            ...((array) $employee),
+                            'in_time' => $attendance->in_time,
+                        ];
+                    }
+                } else {
+                    $absentEmployees[] = $employee;
+                }
+            }
+
+            $summaryTable[] = [
+                'department' => $departmentName,
+                'total' => $totalCount,
+                'late' => $lateCount,
+                'absent' => count($absentEmployees),
+            ];
+
+            if ($lateEmployees) {
+                $lateDetails[$departmentName] = array_map(fn ($e) => [
+                    'employee_id' => $e->employee_id,
+                    'name' => $e->name,
+                    'designation' => $e->designation,
+                    'in_time' => $e->in_time,
+                ], $lateEmployees);
+            }
+
+            if ($absentEmployees) {
+                $absentDetails[$departmentName] = array_map(fn ($e) => [
+                    'employee_id' => $e->employee_id,
+                    'name' => $e->name,
+                    'designation' => $e->designation,
+                ], $absentEmployees);
+            }
+        }
+
+        return Inertia::render('LateSummaryReport', compact(
+            'summaryTable',
+            'lateDetails',
+            'absentDetails',
+            'date'
+        ));
+    }
+
+
+    public function showLateSummaryReport0()
     {
         $summaryTable = [];
         $lateDetails = [];

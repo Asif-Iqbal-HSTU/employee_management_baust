@@ -157,9 +157,31 @@ export default function LateSummaryReport({ date, summaryTable, lateDetails, abs
                         <h1 className="text-xl font-semibold">Late & Absent Employees Summary Report for {date}</h1>
                         <p className="text-sm text-gray-600">(Employees entering after 08:00 AM are considered late.)</p>
                     </div>
-                    <button onClick={handleDownload} className="rounded bg-green-700 px-4 py-2 text-white hover:bg-green-800">
+                    <div className="flex items-center gap-4">
+                        <input
+                            type="date"
+                            value={date}
+                            onChange={(e) =>
+                                router.get(
+                                    route('late.summary.report'),
+                                    { date: e.target.value },
+                                    { preserveScroll: true }
+                                )
+                            }
+                            className="rounded border px-3 py-2 text-sm"
+                        />
+
+                        <button
+                            onClick={handleDownload}
+                            className="rounded bg-green-700 px-4 py-2 text-white hover:bg-green-800"
+                        >
+                            Download PDF
+                        </button>
+                    </div>
+
+                    {/*<button onClick={handleDownload} className="rounded bg-green-700 px-4 py-2 text-white hover:bg-green-800">
                         Download PDF
-                    </button>
+                    </button>*/}
                 </div>
 
                 <div ref={tablesRef}>
