@@ -177,7 +177,7 @@ class DeviceLogController extends Controller
         return back()->with('success', 'Logs synced, cleared from devices, and daily attendance updated.');
     }
 
-    public function syncRawLogs()
+    public function syncRawLogs00()
     {
         $deviceIps = ['192.168.10.20','192.168.10.21','192.168.10.22'];
         $batchSize = 1000;
@@ -308,6 +308,97 @@ class DeviceLogController extends Controller
         }
 
         return back()->with('success', 'Logs synced, cleared from devices, and daily attendance updated.');
+    }
+
+    public function syncRawLogs()
+    {
+        $deviceIps = ['192.168.10.20','192.168.10.21','192.168.10.22'];
+        $batchSize = 1000;
+        $affected = [];
+
+        foreach ($deviceIps as $ip) {
+
+            $zk = new \Rats\Zkteco\Lib\ZKTeco($ip);
+            if (!$zk->connect()) continue;
+
+            $zk->disableDevice();
+            $logs = $zk->getAttendance();
+            $batch = [];
+
+            foreach ($logs as $log) {
+
+                $date = Carbon::parse($log['timestamp'])->toDateString();
+                $affected[$log['id']][$date] = true;
+
+                $batch[] = [
+                    'employee_id' => $log['id'],
+                    'timestamp'   => Carbon::parse($log['timestamp'])->format('Y-m-d H:i:s'),
+                    'uid'         => $log['uid'],
+                    'type'        => $log['type'],
+                    'created_at'  => now(),
+                    'updated_at'  => now(),
+                ];
+
+                if (count($batch) >= $batchSize) {
+                    DeviceLog::upsert(
+                        $batch,
+                        ['employee_id', 'timestamp'],
+                        ['uid', 'type', 'updated_at']
+                    );
+                    $batch = [];
+                }
+            }
+
+            if ($batch) {
+                DeviceLog::upsert(
+                    $batch,
+                    ['employee_id', 'timestamp'],
+                    ['uid', 'type', 'updated_at']
+                );
+            }
+
+            $zk->clearAttendance();
+            $zk->enableDevice();
+            $zk->disconnect();
+        }
+
+        // 🔁 Recalculate daily attendance
+        foreach ($affected as $empId => $days) {
+            foreach ($days as $date => $_) {
+
+                $row = DeviceLog::where('employee_id', $empId)
+                    ->whereDate('timestamp', $date)
+                    ->selectRaw('MIN(timestamp) as in_time, MAX(timestamp) as out_time')
+                    ->first();
+
+                if (!$row) continue;
+
+                $in  = $row->in_time  ? Carbon::parse($row->in_time)->format('H:i:s') : null;
+                $out = $row->out_time ? Carbon::parse($row->out_time)->format('H:i:s') : null;
+
+                // 🔑 unified expected time
+                $timing = DutyTimeResolver::resolve($empId, $date);
+
+                $status = AttendanceStatusResolver::resolve(
+                    $in,
+                    $out,
+                    $timing['start'],
+                    $timing['end']
+                );
+
+                DailyAttendance::updateOrCreate(
+                    ['employee_id' => $empId, 'date' => $date],
+                    [
+                        'in_time'  => $in,
+                        'out_time' => $out,
+                        'status'   => $status,
+                        'remarks'  => $timing['source'], // roster / office / default
+                    ]
+                );
+            }
+        }
+
+        return back()->with('success', 'Logs synced and attendance recalculated correctly.');
     }
 
 

@@ -5,19 +5,23 @@ namespace App\Services;
 class AttendanceStatusResolver
 {
     public static function resolve(
-        string $in,
-        string $out,
+        ?string $in,
+        ?string $out,
         string $expectedIn,
         string $expectedOut
     ): string {
 
+        if (!$in && !$out) {
+            return 'absent';
+        }
+
         $status = [];
 
-        if ($in > $expectedIn) {
+        if ($in && $in > $expectedIn) {
             $status[] = 'late entry';
         }
 
-        if ($out < $expectedOut) {
+        if ($out && $out < $expectedOut) {
             $status[] = 'early leave';
         }
 

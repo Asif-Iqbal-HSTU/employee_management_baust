@@ -7,6 +7,8 @@ use App\Models\DeviceLog;
 use App\Models\OfficeTime;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use App\Services\DutyTimeResolver;
+use App\Services\AttendanceStatusResolver;
 
 class DailyAttendanceController extends Controller
 {
@@ -20,7 +22,7 @@ class DailyAttendanceController extends Controller
         ];
     }
 
-    public function generateDailyAttendance(): \Illuminate\Http\JsonResponse
+    public function generateDailyAttendance0(): \Illuminate\Http\JsonResponse
     {
         $records = DeviceLog::select(
             'employee_id',
@@ -63,29 +65,30 @@ class DailyAttendanceController extends Controller
         return response()->json(['message' => 'Daily attendance generated']);
     }
 
-
-    /*public function generateDailyAttendance(): \Illuminate\Http\JsonResponse
+    public function generateDailyAttendance(): \Illuminate\Http\JsonResponse
     {
-        // Group raw logs by employee + date
         $records = DeviceLog::select(
             'employee_id',
-            DB::raw('DATE(`timestamp`) as day'),
-            DB::raw('MIN(`timestamp`) as in_time'),
-            DB::raw('MAX(`timestamp`) as out_time')
+            DB::raw('DATE(timestamp) as day'),
+            DB::raw('MIN(timestamp) as in_time'),
+            DB::raw('MAX(timestamp) as out_time')
         )
             ->groupBy('employee_id', 'day')
             ->get();
 
         foreach ($records as $r) {
 
-            $in  = Carbon::parse($r->in_time)->format('H:i:s');
-            $out = Carbon::parse($r->out_time)->format('H:i:s');
+            $in  = $r->in_time  ? Carbon::parse($r->in_time)->format('H:i:s') : null;
+            $out = $r->out_time ? Carbon::parse($r->out_time)->format('H:i:s') : null;
 
-            // Status calculation
-            $status = [];
-            if ($in > '08:30:00')  $status[] = 'late entry';
-            if ($out < '14:30:00') $status[] = 'early leave';
-            if ($in == '' && $out == '') $status[] = 'absent';
+            $timing = DutyTimeResolver::resolve($r->employee_id, $r->day);
+
+            $status = AttendanceStatusResolver::resolve(
+                $in,
+                $out,
+                $timing['start'],
+                $timing['end']
+            );
 
             DailyAttendance::updateOrCreate(
                 [
@@ -95,70 +98,16 @@ class DailyAttendanceController extends Controller
                 [
                     'in_time'  => $in,
                     'out_time' => $out,
-                    'status'   => implode(', ', $status) ?: 'ok',
+                    'status'   => $status,
+                    'remarks'  => $timing['source'],
                 ]
             );
         }
 
-        return response()->json(['message' => 'Daily attendance generated']);
-    }*/
-
-    /*public function generateDailyAttendance(): \Illuminate\Http\JsonResponse
-    {
-        // Group raw logs by employee + date and include count
-        $records = DeviceLog::select(
-            'employee_id',
-            DB::raw('DATE(`timestamp`) as day'),
-            DB::raw('MIN(`timestamp`) as in_time'),
-            DB::raw('MAX(`timestamp`) as out_time'),
-            DB::raw('COUNT(*) as cnt')
-        )
-            ->groupBy('employee_id', 'day')
-            ->get();
-
-        foreach ($records as $r) {
-            // Use raw values for decision-making; parse only when present
-            $rawIn  = $r->in_time;
-            $rawOut = $r->out_time;
-
-            $in  = $rawIn ? Carbon::parse($rawIn)->format('H:i:s') : '';
-            $out = $rawOut ? Carbon::parse($rawOut)->format('H:i:s') : '';
-
-            // If there was only one log entry that day, treat out_time as blank
-            if ((int)$r->cnt === 1) {
-                $out = '';
-            } else {
-                // Extra safety: if MIN == MAX (rare but possible), blank out too
-                if ($rawIn && $rawOut && $rawIn === $rawOut) {
-                    $out = '';
-                }
-            }
-
-            // Status calculation
-            $status = [];
-            if ($in && $in > '08:30:00') {
-                $status[] = 'late entry';
-            }
-            if ($out && $out < '14:30:00') {
-                $status[] = 'early leave';
-            }
-
-            DailyAttendance::updateOrCreate(
-                [
-                    'employee_id' => $r->employee_id,
-                    'date'        => $r->day,
-                ],
-                [
-                    'in_time'  => $in,
-                    'out_time' => $out,
-                    'status'   => implode(', ', $status) ?: 'ok',
-                ]
-            );
-        }
-
-        return response()->json(['message' => 'Daily attendance generated']);
-    }*/
-
+        return response()->json([
+            'message' => 'Daily attendance generated (roster + office aware)',
+        ]);
+    }
 
     public function calendar(Request $request)
     {
