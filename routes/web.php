@@ -111,7 +111,7 @@ Route::get('/', function () {
 });*/
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 });
 
 
@@ -332,6 +332,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::post('/dept-head/leaves/{id}/deny', [LeaveController::class, 'denyByHead'])
         ->name('deptHead.leaves.deny');
+
+    Route::get(
+        '/dept-head/leaves/employee/{employee_id}',
+        [LeaveController::class, 'employeeLeaves']
+    )->name('deptHead.employee.leaves');
+
 });
 
 use App\Http\Controllers\RegistrarLeaveController;

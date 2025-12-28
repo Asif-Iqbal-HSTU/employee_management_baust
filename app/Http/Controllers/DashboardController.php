@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
-    public function index(Request $request)
+    public function index0(Request $request): \Inertia\Response
     {
         $user = $request->user();
         $employeeId = $user->employee_id;
@@ -120,6 +120,145 @@ class DashboardController extends Controller
             'year'         => $year,
         ]);
     }
+
+    public function index(Request $request)
+    {
+        $user = $request->user();
+        $employeeId = $user->employee_id;
+
+        /* ===========================
+         |  Today Entry
+         * =========================== */
+        $todayEntry = DailyAttendance::where('employee_id', $employeeId)
+            ->whereDate('date', today())
+            ->first();
+
+        /* ===========================
+         |  Last 7 Days Logs
+         * =========================== */
+        $logs = DailyAttendance::where('employee_id', $employeeId)
+            ->whereBetween('date', [
+                now()->subDays(6)->toDateString(),
+                today()->toDateString()
+            ])
+            ->orderBy('date', 'desc')
+            ->get();
+
+        /* ===========================
+         |  Calendar View
+         * =========================== */
+        $month = (int) $request->input('month', now()->month);
+        $year  = (int) $request->input('year', now()->year);
+
+        $calendarLogs = DailyAttendance::where('employee_id', $employeeId)
+            ->whereMonth('date', $month)
+            ->whereYear('date', $year)
+            ->get()
+            ->keyBy(fn ($row) => Carbon::parse($row->date)->format('Y-m-d'));
+
+        /* ===========================
+         |  Holidays
+         * =========================== */
+        $holidays = Holiday::get()->mapWithKeys(function ($h) {
+            return [
+                Carbon::parse($h->date)->format('Y-m-d') => $h->name ?: 'Holiday'
+            ];
+        })->toArray();
+
+        $holidayDates = array_keys($holidays);
+
+        /* ===========================
+         |  ABSENCE CALCULATION (FIXED)
+         * =========================== */
+        $startOfMonth = Carbon::create($year, $month, 1);
+        $today = Carbon::today();
+
+        // Decide correct end date
+        if ($year === $today->year && $month === $today->month) {
+            // Current month → up to today
+            $endDate = $today;
+        } elseif ($startOfMonth->isFuture()) {
+            // Future month → no absences
+            $absenceCount = 0;
+            goto SUMMARY;
+        } else {
+            // Past month → full month
+            $endDate = $startOfMonth->copy()->endOfMonth();
+        }
+
+        // Build working days
+        $workingDays = [];
+        $cursor = $startOfMonth->copy();
+
+        while ($cursor->lte($endDate)) {
+
+            // Skip Friday (5) & Saturday (6)
+            if (!in_array($cursor->dayOfWeek, [5, 6])) {
+
+                // Skip holidays
+                if (!in_array($cursor->format('Y-m-d'), $holidayDates)) {
+                    $workingDays[] = $cursor->format('Y-m-d');
+                }
+            }
+
+            $cursor->addDay();
+        }
+
+        // Attendance days in selected range
+        $attendanceDays = DailyAttendance::where('employee_id', $employeeId)
+            ->whereBetween('date', [
+                $startOfMonth->toDateString(),
+                $endDate->toDateString()
+            ])
+            ->pluck('date')
+            ->map(fn ($d) => Carbon::parse($d)->format('Y-m-d'))
+            ->toArray();
+
+        // Final absence count
+        $absenceCount = collect($workingDays)
+            ->diff($attendanceDays)
+            ->count();
+
+        /* ===========================
+         |  SUMMARY
+         * =========================== */
+        SUMMARY:
+
+        $summary = [
+            'late' => DailyAttendance::where('employee_id', $employeeId)
+                ->whereMonth('date', $month)
+                ->whereYear('date', $year)
+                ->where('status', 'like', '%late entry%')
+                ->whereNotIn(DB::raw('DATE(date)'), $holidayDates)
+                ->whereRaw('WEEKDAY(date) NOT IN (4,5)')
+                ->count(),
+
+            'early' => DailyAttendance::where('employee_id', $employeeId)
+                ->whereMonth('date', $month)
+                ->whereYear('date', $year)
+                ->where('status', 'like', '%early leave%')
+                ->whereNotIn(DB::raw('DATE(date)'), $holidayDates)
+                ->whereRaw('WEEKDAY(date) NOT IN (4,5)')
+                ->count(),
+
+            'absence' => $absenceCount,
+        ];
+
+        /* ===========================
+         |  RESPONSE
+         * =========================== */
+        return Inertia::render('dashboard2', [
+            'employeeId'   => $employeeId,
+            'todayEntry'   => $todayEntry,
+            'logs'         => $logs,
+            'calendarLogs' => $calendarLogs,
+            'holidays2025' => $holidays,
+            'summary'      => $summary,
+            'month'        => $month,
+            'year'         => $year,
+        ]);
+    }
+
 
     public function employeeCalendar(Request $request, $employeeId)
     {

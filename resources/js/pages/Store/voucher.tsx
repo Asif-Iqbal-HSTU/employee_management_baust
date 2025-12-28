@@ -65,7 +65,6 @@ export default function VoucherPage({ products, vouchers, departments }: any) {
                                     labelKey="product_name"
                                     valueKey="id"
                                 />
-
                                 {errors.store_product_id && (
                                     <div className="text-red-600 text-xs">
                                         {errors.store_product_id}
