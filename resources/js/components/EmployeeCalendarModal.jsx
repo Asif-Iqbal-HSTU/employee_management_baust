@@ -65,6 +65,43 @@ export default function EmployeeCalendarModal({ employee, isOpen, onClose }) {
                     </button>
                 </div>
 
+                <div className="mb-4 flex flex-wrap gap-4">
+                    <div className="flex items-center gap-1">
+                        <div className="h-4 w-4 rounded bg-blue-100 border border-blue-500"></div>
+                        <span className="text-xs text-blue-800">Holiday</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                        <div className="h-4 w-4 rounded bg-yellow-100 border border-yellow-500"></div>
+                        <span className="text-xs text-yellow-800">Weekend</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                        <div className="h-4 w-4 rounded bg-green-50 border border-green-400"></div>
+                        <span className="text-xs text-green-800">Present</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                        <div className="h-4 w-4 rounded bg-yellow-50 border border-yellow-400"></div>
+                        <span className="text-xs text-yellow-800">Late Entry</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                        <div className="h-4 w-4 rounded bg-orange-50 border border-orange-400"></div>
+                        <span className="text-xs text-orange-800">Early Leave</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                        <div className="h-4 w-4 rounded bg-red-50 border border-red-400"></div>
+                        <span className="text-xs text-red-700">Absent</span>
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                        <div className="h-4 w-4 rounded bg-purple-100 border border-purple-500"></div>
+                        <span className="text-xs text-purple-800">Leave</span>
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                        <div className="h-4 w-4 rounded bg-green-100 border border-green-600"></div>
+                        <span className="text-xs text-green-800">Today</span>
+                    </div>
+                </div>
+
                 {/* Month Navigation */}
                 <div className="flex justify-between mb-4">
                     <button onClick={prevMonth} className="p-2 hover:bg-gray-200 rounded">
@@ -91,7 +128,7 @@ export default function EmployeeCalendarModal({ employee, isOpen, onClose }) {
                         const isWeekend = weekday === 5 || weekday === 6;
                         const isHoliday = holidays[date];
 
-                        let classes = "h-24 p-2 rounded border text-xs flex flex-col";
+                        let classes = "h-18 p-2 rounded border text-xs flex flex-col";
 
                         if (isToday) classes += " bg-green-100 border-green-600";
                         else if (isHoliday) classes += " bg-blue-100 border-blue-600";
@@ -101,6 +138,8 @@ export default function EmployeeCalendarModal({ employee, isOpen, onClose }) {
                                 classes += " bg-yellow-50 border-yellow-400";
                             else if (entry.status.includes("early"))
                                 classes += " bg-orange-50 border-orange-400";
+                            else if (entry.status.includes("On Leave"))
+                                classes += " bg-purple-50 border-purple-400";
                             else classes += " bg-green-50 border-green-400";
                         } else classes += " bg-red-50 border-red-400";
 

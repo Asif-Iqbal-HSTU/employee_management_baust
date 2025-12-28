@@ -176,7 +176,9 @@ export function AppSidebar() {
                 href: '/repair-requests',
                 category: 'IT Repair Cell',
                 icon: FileSliders,
-            }
+            },
+
+            { title: 'Duty Roster', href: '/duty-roster', category: 'Attendance', icon: Logs }
         );
     }
 
