@@ -99,7 +99,7 @@ class DailyAttendanceController extends Controller
                     'in_time'  => $in,
                     'out_time' => $out,
                     'status'   => $status,
-                    'remarks'  => $timing['source'],
+//                    'remarks'  => $timing['source'],
                 ]
             );
         }

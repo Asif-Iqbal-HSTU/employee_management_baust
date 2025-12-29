@@ -392,7 +392,7 @@ class DeviceLogController extends Controller
                         'in_time'  => $in,
                         'out_time' => $out,
                         'status'   => $status,
-                        'remarks'  => $timing['source'], // roster / office / default
+//                        'remarks'  => $timing['source'], // roster / office / default
                     ]
                 );
             }
