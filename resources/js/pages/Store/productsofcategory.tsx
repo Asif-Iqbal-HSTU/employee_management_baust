@@ -2,12 +2,33 @@ import SearchableSelect from '@/components/SearchableSelect';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
 import { Head, useForm, usePage } from '@inertiajs/react';
-import { PlusCircle } from 'lucide-react';
-import React, { useState } from 'react';
+import { Check, Pencil, PlusCircle, X } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
+import { router } from '@inertiajs/core';
 
 export default function ProductOfCategory({ products, category, vendors }: any) {
     const auth = usePage().props.auth.user;
+    const { url } = usePage();
+    const highlightId = new URLSearchParams(url.split('?')[1]).get('highlight');
+    const productRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
+    useEffect(() => {
+        if (!highlightId) return;
+
+        const el = productRefs.current[Number(highlightId)];
+
+        if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+            el.classList.add('highlight-pulse');
+
+            setTimeout(() => {
+                el.classList.remove('highlight-pulse');
+            }, 2500);
+        }
+    }, [highlightId]);
+
+
     console.log(auth.employee_id);
     const breadcrumbs: BreadcrumbItem[] = [{ title: 'Categories of Store Products', href: '/categories' }];
 
@@ -75,6 +96,9 @@ export default function ProductOfCategory({ products, category, vendors }: any) 
         vendor_name: '',
     });
 
+    const [editingProductId, setEditingProductId] = useState<number | null>(null);
+    const [editingStock, setEditingStock] = useState<string>('');
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Store Products" />
@@ -103,10 +127,72 @@ export default function ProductOfCategory({ products, category, vendors }: any) 
                 {/* Product List */}
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                     {products.map((product: any) => (
-                        <div key={product.id} className="bg-card rounded-xl border p-6 shadow-sm transition hover:shadow-md">
-                            <h2 className="text-lg font-semibold">{product.product_name}</h2>
-                            <p className="text-sm text-gray-600">
+                        <div
+                            key={product.id}
+                            ref={(el) => (productRefs.current[product.id] = el)}
+                            className="bg-card rounded-xl border p-6 shadow-sm transition hover:shadow-md"
+                        >
+
+
+                        <h2 className="text-lg font-semibold">{product.product_name}</h2>
+                            {/*<p className="text-sm text-gray-600">
                                 Stock: {product.stock_unit_number} {product.stock_unit_name}
+                            </p>*/}
+                            <p className="flex items-center gap-2 text-sm text-gray-600">
+                                Stock:
+                                {editingProductId === product.id ? (
+                                    <>
+                                        <input
+                                            type="number"
+                                            className="w-20 rounded border px-2 py-1 text-sm"
+                                            value={editingStock}
+                                            onChange={(e) => setEditingStock(e.target.value)}
+                                        />
+
+                                        {/* SAVE */}
+                                        <button
+                                            onClick={() => {
+                                                router.patch(
+                                                    route('store.products.updateStock', product.id),
+                                                    { stock_unit_number: editingStock },
+                                                    {
+                                                        preserveScroll: true,
+                                                        onSuccess: () => {
+                                                            toast.success('Stock updated');
+                                                            setEditingProductId(null);
+                                                        },
+                                                    },
+                                                );
+                                            }}
+                                            className="text-green-600 hover:text-green-800"
+                                        >
+                                            <Check size={18} />
+                                        </button>
+
+                                        {/* CANCEL */}
+                                        <button onClick={() => setEditingProductId(null)} className="text-red-600 hover:text-red-800">
+                                            <X size={18} />
+                                        </button>
+                                    </>
+                                ) : (
+                                    <>
+                                        <span>
+                                            {product.stock_unit_number} {product.stock_unit_name}
+                                        </span>
+
+                                        {(auth.employee_id == 15302 || auth.employee_id == 19001) && (
+                                            <button
+                                                onClick={() => {
+                                                    setEditingProductId(product.id);
+                                                    setEditingStock(product.stock_unit_number);
+                                                }}
+                                                className="text-blue-600 hover:text-blue-800"
+                                            >
+                                                <Pencil size={16} />
+                                            </button>
+                                        )}
+                                    </>
+                                )}
                             </p>
 
                             {(auth.employee_id == 15302 || auth.employee_id == 19001) && (
@@ -131,17 +217,6 @@ export default function ProductOfCategory({ products, category, vendors }: any) 
                                     >
                                         Preview
                                     </button>
-
-                                    {/* Issue Button */}
-                                    {/*<button
-                                    onClick={() => {
-                                        issueForm.setData("store_product_id", product.id);
-                                        setShowIssueModal(true);
-                                    }}
-                                    className="flex items-center gap-1 px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
-                                >
-                                    <MinusCircle size={16} /> Issue
-                                </button>*/}
                                 </div>
                             )}
                         </div>
@@ -191,14 +266,6 @@ export default function ProductOfCategory({ products, category, vendors }: any) 
             {/* ----------------------------- ADD PRODUCT MODAL ----------------------------- */}
             {showAddModal && (
                 <div className="bg-opacity-40 fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-                    {/*<button
-                        type="button"
-                        onClick={() => setShowVendorModal(true)}
-                        className="mt-1 text-xs text-blue-600 underline"
-                    >
-                        + Add new vendor
-                    </button>*/}
-
                     <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-lg">
                         <div className="mb-4 flex items-center justify-between">
                             <h2 className="text-lg font-bold">Add New Product</h2>
@@ -241,8 +308,6 @@ export default function ProductOfCategory({ products, category, vendors }: any) 
                                 </select>
                                 {errors.stock_unit_name && <p className="text-sm text-red-500">{errors.stock_unit_name}</p>}
                             </div>
-
-
 
                             {/* Stock Unit Number */}
                             <div>
@@ -307,44 +372,6 @@ export default function ProductOfCategory({ products, category, vendors }: any) 
                                 />
                                 {receiveForm.errors.date_of_receive && <p className="text-sm text-red-500">{receiveForm.errors.date_of_receive}</p>}
                             </div>
-
-                            {/* From Whom */}
-                            {/*<div>
-                                <label className="block font-medium">From Whom</label>
-                                <input
-                                    type="text"
-                                    className="w-full rounded-lg border p-2"
-                                    value={receiveForm.data.from_whom}
-                                    onChange={(e) => receiveForm.setData('from_whom', e.target.value)}
-                                />
-                                {receiveForm.errors.from_whom && <p className="text-sm text-red-500">{receiveForm.errors.from_whom}</p>}
-                            </div>*/}
-
-                            {/*<div>
-                                <label className="block font-medium">From Whom</label>
-
-                                <select
-                                    className="w-full rounded-lg border p-2"
-                                    value={receiveForm.data.from_whom}
-                                    onChange={(e) =>
-                                        receiveForm.setData('from_whom', e.target.value)
-                                    }
-                                >
-                                    <option value="">-- Select Vendor --</option>
-
-                                    {vendors.map((vendor) => (
-                                        <option key={vendor.id} value={vendor.vendor_name}>
-                                            {vendor.vendor_name}
-                                        </option>
-                                    ))}
-                                </select>
-
-                                {receiveForm.errors.from_whom && (
-                                    <p className="text-sm text-red-500">
-                                        {receiveForm.errors.from_whom}
-                                    </p>
-                                )}
-                            </div>*/}
 
                             <div>
                                 <label className="block font-medium">From Whom</label>
@@ -725,7 +752,6 @@ export default function ProductOfCategory({ products, category, vendors }: any) 
                                 Close
                             </button>
                         </div>
-
                     </div>
                 </div>
             )}

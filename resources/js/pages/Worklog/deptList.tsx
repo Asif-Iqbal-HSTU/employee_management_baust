@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { Head, Link, useForm } from "@inertiajs/react";
 import AppLayout from "@/layouts/app-layout";
 import type { BreadcrumbItem } from "@/types";
-import { toast } from "sonner";
 
 export default function DeptList({ departments, worklogs }: any) {
     const breadcrumbs: BreadcrumbItem[] = [
@@ -38,7 +37,6 @@ export default function DeptList({ departments, worklogs }: any) {
         e.preventDefault();
         post(route("worklog.store"), {
             onSuccess: () => {
-                toast.success("Worklog added successfully!");
                 reset("startTime", "endTime", "taskDescription", "status");
             },
         });

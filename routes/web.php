@@ -373,7 +373,9 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/requisitions-create', [IssueVoucherController::class, 'store'])->name('voucher.create');
     Route::get('/categories', [StoreCategoryController::class, 'index'])->name('category.index');
     Route::get('/category/products/{id}', [StoreCategoryController::class, 'products'])->name('store.products');
-    Route::post('/categories-create', [StoreCategoryController::class, 'create'])->name('category.create');
+    Route::patch('/store/products/{product}', [StoreCategoryController::class, 'updateStock'])
+        ->name('store.products.updateStock');
+    Route::post('/categories-create', [StoreCategoryController::class, 'store'])->name('category.create');
     Route::post('/store-products', [StoreProductController::class, 'store'])
         ->name('store.products.store');
     Route::post('/store-products/receive', [StoreReceiveController::class, 'store'])

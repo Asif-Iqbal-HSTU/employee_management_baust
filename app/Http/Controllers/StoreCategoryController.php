@@ -84,4 +84,32 @@ class StoreCategoryController extends Controller
         ]);
     }
 
+    public function updateStock(Request $request, StoreProduct $product)
+    {
+        $request->validate([
+            'stock_unit_number' => 'required|integer|min:0',
+        ]);
+
+        $product->update([
+            'stock_unit_number' => $request->stock_unit_number,
+        ]);
+
+        return back()->with('success', 'Stock updated successfully');
+    }
+
+    public function store(Request $request)
+    {
+        $request->validate([
+            'category_name' => 'required|string|max:255',
+        ]);
+
+        $data = $request->only([
+            'category_name',
+        ]);
+
+        StoreCategory::create($data);
+
+        return back();
+    }
+
 }
