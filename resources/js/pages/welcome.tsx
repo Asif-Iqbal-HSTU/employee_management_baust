@@ -17,7 +17,7 @@ export default function Welcome({ auth }) {
 
                     {/* Title */}
                     <h1 className="text-3xl md:text-4xl font-bold text-gray-800 dark:text-white">
-                        Employee Attendance Management System
+                        BAUST Management System
                     </h1>
 
                     {/* Subtitle */}
@@ -36,7 +36,7 @@ export default function Welcome({ auth }) {
                             </Link>
                         ) : (
                             <>
-                                <Link
+                                {/*<Link
                                     href={route("login")}
                                     className="inline-block rounded-sm border border-transparent px-5 py-1.5 text-sm leading-normal text-[#1b1b18] hover:border-[#19140035] dark:text-[#EDEDEC] dark:hover:border-[#3E3E3A]"
                                 >
@@ -47,6 +47,12 @@ export default function Welcome({ auth }) {
                                     className="inline-block rounded-sm border border-[#19140035] px-5 py-1.5 text-sm leading-normal text-[#1b1b18] hover:border-[#1915014a] dark:border-[#3E3E3A] dark:text-[#EDEDEC] dark:hover:border-[#62605b]"
                                 >
                                     Register
+                                </Link>*/}
+                                <Link
+                                    href={route("login")}
+                                    className="inline-block rounded-sm border border-[#19140035] px-5 py-1.5 text-sm leading-normal text-[#1b1b18] hover:border-[#1915014a] dark:border-[#3E3E3A] dark:text-[#EDEDEC] dark:hover:border-[#62605b]"
+                                >
+                                    Log in
                                 </Link>
                             </>
                         )}
