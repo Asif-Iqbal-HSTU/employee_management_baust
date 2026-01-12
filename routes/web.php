@@ -380,6 +380,12 @@ Route::middleware(['auth'])->group(function () {
         ->name('store.products.store');
     Route::post('/store-products/receive', [StoreReceiveController::class, 'store'])
         ->name('store.receive.store');
+    Route::patch('/store/products/{product}/name', [StoreCategoryController::class, 'updateName'])
+        ->name('store.products.updateName');
+
+    Route::delete('/store/products/{product}', [StoreCategoryController::class, 'destroy'])
+        ->name('store.products.destroy');
+
 
     Route::get('/dept-head/store/requisitions', [IssueVoucherController::class, 'depthead_allow'])->name('voucher.head.allow');
     Route::post('/dept-head/store/requisitions/{voucher}/approve',

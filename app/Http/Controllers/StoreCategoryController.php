@@ -112,4 +112,25 @@ class StoreCategoryController extends Controller
         return back();
     }
 
+    public function updateName(Request $request, StoreProduct $product)
+    {
+        $request->validate([
+            'product_name' => 'required|string|max:255',
+        ]);
+
+        $product->update([
+            'product_name' => $request->product_name,
+        ]);
+
+        return back()->with('success', 'Product name updated');
+    }
+
+
+    public function destroy(StoreProduct $product)
+    {
+        $product->delete();
+        return back()->with('success', 'Product deleted');
+    }
+
+
 }

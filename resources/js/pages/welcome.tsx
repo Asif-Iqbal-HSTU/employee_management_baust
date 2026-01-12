@@ -63,6 +63,9 @@ export default function Welcome({ auth }) {
                 <footer className="mt-10 text-gray-500 dark:text-gray-400 text-sm">
                     &copy; {new Date().getFullYear()} ICT Wing & Archive, BAUST · All Rights Reserved
                 </footer>
+                <footer className="mt-10 text-gray-500 dark:text-gray-400 text-sm">
+                    If you face any problem, please call the developer: Md. Asif Iqbal, 01725215111
+                </footer>
             </div>
         </>
     );

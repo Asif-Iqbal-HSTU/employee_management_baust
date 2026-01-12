@@ -9,8 +9,10 @@ import { router } from '@inertiajs/core';
 
 export default function ProductOfCategory({ products, category, vendors }: any) {
     const auth = usePage().props.auth.user;
-    const { url } = usePage();
-    const highlightId = new URLSearchParams(url.split('?')[1]).get('highlight');
+    /*const { url } = usePage();
+    const highlightId = new URLSearchParams(url.split('?')[1]).get('highlight');*/
+    const highlightId = new URLSearchParams(window.location.search).get('highlight');
+
     const productRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
     useEffect(() => {
         if (!highlightId) return;
@@ -99,6 +101,10 @@ export default function ProductOfCategory({ products, category, vendors }: any) 
     const [editingProductId, setEditingProductId] = useState<number | null>(null);
     const [editingStock, setEditingStock] = useState<string>('');
 
+    const [editingNameId, setEditingNameId] = useState<number | null>(null);
+    const [editingName, setEditingName] = useState('');
+
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Store Products" />
@@ -134,7 +140,63 @@ export default function ProductOfCategory({ products, category, vendors }: any) 
                         >
 
 
-                        <h2 className="text-lg font-semibold">{product.product_name}</h2>
+                        {/*<h2 className="text-lg font-semibold">{product.product_name}</h2>*/}
+                            <div className="flex items-center gap-2">
+                                {editingNameId === product.id ? (
+                                    <>
+                                        <input
+                                            className="w-full rounded border px-2 py-1 text-sm"
+                                            value={editingName}
+                                            onChange={(e) => setEditingName(e.target.value)}
+                                        />
+
+                                        {/* Save */}
+                                        <button
+                                            onClick={() => {
+                                                router.patch(
+                                                    route('store.products.updateName', product.id),
+                                                    { product_name: editingName },
+                                                    {
+                                                        preserveScroll: true,
+                                                        onSuccess: () => {
+                                                            toast.success('Name updated');
+                                                            setEditingNameId(null);
+                                                        },
+                                                    }
+                                                );
+                                            }}
+                                            className="text-green-600 hover:text-green-800"
+                                        >
+                                            <Check size={18} />
+                                        </button>
+
+                                        {/* Cancel */}
+                                        <button
+                                            onClick={() => setEditingNameId(null)}
+                                            className="text-red-600 hover:text-red-800"
+                                        >
+                                            <X size={18} />
+                                        </button>
+                                    </>
+                                ) : (
+                                    <>
+                                        <h2 className="text-lg font-semibold">{product.product_name}</h2>
+
+                                        {(auth.employee_id == 15302 || auth.employee_id == 19001) && (
+                                            <button
+                                                onClick={() => {
+                                                    setEditingNameId(product.id);
+                                                    setEditingName(product.product_name);
+                                                }}
+                                                className="text-blue-600 hover:text-blue-800"
+                                            >
+                                                <Pencil size={16} />
+                                            </button>
+                                        )}
+                                    </>
+                                )}
+                            </div>
+
                             {/*<p className="text-sm text-gray-600">
                                 Stock: {product.stock_unit_number} {product.stock_unit_name}
                             </p>*/}
@@ -195,9 +257,9 @@ export default function ProductOfCategory({ products, category, vendors }: any) 
                                 )}
                             </p>
 
-                            {(auth.employee_id == 15302 || auth.employee_id == 19001) && (
+                            {/*{(auth.employee_id == 15302 || auth.employee_id == 19001) && (
                                 <div className="mt-4 flex justify-between">
-                                    {/* Receive Button */}
+                                     Receive Button
                                     <button
                                         onClick={() => {
                                             receiveForm.setData('store_product_id', product.id);
@@ -217,6 +279,49 @@ export default function ProductOfCategory({ products, category, vendors }: any) 
                                     >
                                         Preview
                                     </button>
+                                </div>
+                            )}*/}
+                            {(auth.employee_id == 15302 || auth.employee_id == 19001) && (
+                                <div className="mt-4 flex justify-between">
+                                    {/* Receive Button */}
+                                    <button
+                                        onClick={() => {
+                                            receiveForm.setData('store_product_id', product.id);
+                                            setShowReceiveModal(true);
+                                        }}
+                                        className="flex items-center gap-1 rounded-lg bg-green-600 px-3 py-1.5 text-sm text-white hover:bg-green-700"
+                                    >
+                                        <PlusCircle size={16} /> Receive
+                                    </button>
+
+                                    {/* Right-side buttons */}
+                                    <div className="flex gap-2">
+                                        {/* Preview */}
+                                        <button
+                                            onClick={() => {
+                                                setPreviewProduct(product);
+                                                setShowPreviewModal(true);
+                                            }}
+                                            className="rounded-lg bg-gray-600 px-3 py-1.5 text-sm text-white hover:bg-gray-700"
+                                        >
+                                            Preview
+                                        </button>
+
+                                        {/* Delete */}
+                                        <button
+                                            onClick={() => {
+                                                if (confirm('Delete this product?')) {
+                                                    router.delete(route('store.products.destroy', product.id), {
+                                                        preserveScroll: true,
+                                                        onSuccess: () => toast.success('Product deleted'),
+                                                    });
+                                                }
+                                            }}
+                                            className="rounded-lg bg-red-600 px-3 py-1.5 text-sm text-white hover:bg-red-700"
+                                        >
+                                            Delete
+                                        </button>
+                                    </div>
                                 </div>
                             )}
                         </div>
