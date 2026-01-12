@@ -2,7 +2,7 @@ import SearchableSelect from '@/components/SearchableSelect';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
 import { Head, useForm, usePage } from '@inertiajs/react';
-import { Check, Pencil, PlusCircle, X } from 'lucide-react';
+import { Check, Pencil, PlusCircle, X, Trash2, BookText } from 'lucide-react';
 import React, { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { router } from '@inertiajs/core';
@@ -257,73 +257,48 @@ export default function ProductOfCategory({ products, category, vendors }: any) 
                                 )}
                             </p>
 
-                            {/*{(auth.employee_id == 15302 || auth.employee_id == 19001) && (
-                                <div className="mt-4 flex justify-between">
-                                     Receive Button
+                            {(auth.employee_id == 15302 || auth.employee_id == 19001) && (
+                                <div className="mt-4 flex items-center justify-between">
+
+                                    {/* Receive */}
                                     <button
                                         onClick={() => {
                                             receiveForm.setData('store_product_id', product.id);
                                             setShowReceiveModal(true);
                                         }}
-                                        className="flex items-center gap-1 rounded-lg bg-green-600 px-3 py-1.5 text-sm text-white hover:bg-green-700"
+                                        className="text-green-600 hover:text-green-800"
                                     >
-                                        <PlusCircle size={16} /> Receive
+                                        <PlusCircle size={20} />
                                     </button>
 
+                                    {/* Preview (centered automatically) */}
                                     <button
                                         onClick={() => {
                                             setPreviewProduct(product);
                                             setShowPreviewModal(true);
                                         }}
-                                        className="rounded-lg bg-gray-600 px-3 py-1.5 text-sm text-white hover:bg-gray-700"
+                                        className="text-green-600 hover:text-green-800"
                                     >
-                                        Preview
+                                        <BookText size={20} />
                                     </button>
-                                </div>
-                            )}*/}
-                            {(auth.employee_id == 15302 || auth.employee_id == 19001) && (
-                                <div className="mt-4 flex justify-between">
-                                    {/* Receive Button */}
+
+                                    {/* Delete */}
                                     <button
                                         onClick={() => {
-                                            receiveForm.setData('store_product_id', product.id);
-                                            setShowReceiveModal(true);
+                                            if (confirm('Delete this product?')) {
+                                                router.delete(route('store.products.destroy', product.id), {
+                                                    preserveScroll: true,
+                                                    onSuccess: () => toast.success('Product deleted'),
+                                                });
+                                            }
                                         }}
-                                        className="flex items-center gap-1 rounded-lg bg-green-600 px-3 py-1.5 text-sm text-white hover:bg-green-700"
+                                        className="text-red-600 hover:text-red-800"
                                     >
-                                        <PlusCircle size={16} /> Receive
+                                        <Trash2 size={20} />
                                     </button>
-
-                                    {/* Right-side buttons */}
-                                    <div className="flex gap-2">
-                                        {/* Preview */}
-                                        <button
-                                            onClick={() => {
-                                                setPreviewProduct(product);
-                                                setShowPreviewModal(true);
-                                            }}
-                                            className="rounded-lg bg-gray-600 px-3 py-1.5 text-sm text-white hover:bg-gray-700"
-                                        >
-                                            Preview
-                                        </button>
-
-                                        {/* Delete */}
-                                        <button
-                                            onClick={() => {
-                                                if (confirm('Delete this product?')) {
-                                                    router.delete(route('store.products.destroy', product.id), {
-                                                        preserveScroll: true,
-                                                        onSuccess: () => toast.success('Product deleted'),
-                                                    });
-                                                }
-                                            }}
-                                            className="rounded-lg bg-red-600 px-3 py-1.5 text-sm text-white hover:bg-red-700"
-                                        >
-                                            Delete
-                                        </button>
-                                    </div>
                                 </div>
                             )}
+
                         </div>
                     ))}
                 </div>
