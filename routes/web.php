@@ -7,6 +7,7 @@ use App\Http\Controllers\IssueVoucherController;
 use App\Http\Controllers\LeaveController;
 use App\Http\Controllers\OfficeTimeController;
 use App\Http\Controllers\ProductVendorController;
+use App\Http\Controllers\RegistrarVoucherController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\StoreCategoryController;
 use App\Http\Controllers\StoreIssueController;
@@ -354,6 +355,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::post('/registrar/leave-requests/{id}/deny', [RegistrarLeaveController::class, 'deny'])
         ->name('registrar.leave.deny');
+});
+
+Route::middleware(['auth', 'verified'])->group(function () {
+
+    // Registrar Leave Panel
+    Route::get('/registrar/voucher-requests', [RegistrarVoucherController::class, 'index'])
+        ->name('registrar.voucher.index');
+
+    Route::post('/registrar/voucher-requests/{id}/approve', [RegistrarVoucherController::class, 'approve'])
+        ->name('registrar.voucher.approve');
+
+    Route::post('/registrar/voucher-requests/{id}/deny', [RegistrarVoucherController::class, 'deny'])
+        ->name('registrar.voucher.deny');
 });
 
 

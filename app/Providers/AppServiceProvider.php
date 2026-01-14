@@ -94,6 +94,25 @@ class AppServiceProvider extends ServiceProvider
                         ->count(),
                 ];
             },
+            'voucherRegistrarCounts' => function () {
+                $user = auth()->user();
+
+                if (!$user) {
+                    return [
+                        'registrar_voucher_pending' => 0,
+                    ];
+                }
+
+                // 🧑‍💼 Department Head pending
+                $registrarVoucherPending = 0;
+
+
+                $registrarVoucherPending = IssueVoucher::where('allowed_by_registrar', 'No')->count();
+
+                return [
+                    'registrar_voucher_pending' => $registrarVoucherPending,
+                ];
+            },
         ]);
     }
 }

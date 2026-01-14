@@ -17,6 +17,7 @@ import {
     User2,
     Volleyball,
     Warehouse,
+    BookMarked,
 } from 'lucide-react';
 import AppLogo from './app-logo';
 
@@ -26,6 +27,7 @@ export function AppSidebar() {
     const repairCounts = props.repairCounts;
     const leaveCounts = props.leaveCounts;
     const storeCounts = props.storeCounts;
+    const voucherRegistrarCounts = props.voucherRegistrarCounts;
 
     function Badge({ count }: { count: number }) {
         if (!count || count <= 0) return null;
@@ -104,6 +106,17 @@ export function AppSidebar() {
                 href: '/registrar/leave-requests',
                 category: 'Leave Management',
                 icon: TicketsPlane,
+            },
+            {
+                title: (
+                    <span className="flex w-full items-center gap-2">
+                        <span>Voucher Finalization</span>
+                        <Badge count={voucherRegistrarCounts.registrar_voucher_pending} />
+                    </span>
+                ),
+                href: '/registrar/voucher-requests',
+                category: 'Store',
+                icon: BookMarked,
             },
 
             // { title: 'Leave Finalization', href: '/registrar/leave-requests', category: 'Leave Management', icon: TicketsPlane }
