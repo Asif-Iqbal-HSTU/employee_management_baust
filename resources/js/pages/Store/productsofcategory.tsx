@@ -139,7 +139,6 @@ export default function ProductOfCategory({ products, category, vendors }: any) 
                             className="bg-card rounded-xl border p-6 shadow-sm transition hover:shadow-md"
                         >
 
-
                         {/*<h2 className="text-lg font-semibold">{product.product_name}</h2>*/}
                             <div className="flex items-center gap-2">
                                 {editingNameId === product.id ? (
