@@ -31,7 +31,7 @@ class LeaveController extends Controller
         // Default yearly limits
         $defaultCasual  = 20;
         $defaultMedical = 15;
-        $defaultEarned = 15;
+        $defaultEarned = 30;
 
         // Used casual leave days
         $usedCasual = $leaves

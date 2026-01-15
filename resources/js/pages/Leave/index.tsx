@@ -1,22 +1,20 @@
-import AppLayout from '@/layouts/app-layout';
-import { Head, router } from '@inertiajs/react';
-import { useEffect, useState } from 'react';
-import { CalendarCheck, HeartPulse, PlusCircle, Blocks } from 'lucide-react';
-import type { BreadcrumbItem } from '@/types';
-import { useForm } from '@inertiajs/react';
 import SearchableSelect from '@/components/SearchableSelect';
+import AppLayout from '@/layouts/app-layout';
+import type { BreadcrumbItem } from '@/types';
+import { Head, useForm } from '@inertiajs/react';
+import { Blocks, CalendarCheck, HeartPulse, PlusCircle } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Leave Management', href: '/leave-management' }];
 
 export default function Leave({ leaves, remainingCasual, remainingMedical, remainingEarned, employees }: any) {
-
     console.log(remainingCasual);
     console.log(remainingMedical);
+    console.log(remainingEarned);
 
     const [showModal, setShowModal] = useState(false);
     const [balanceError, setBalanceError] = useState<string | null>(null);
     const [dateConflictError, setDateConflictError] = useState<string | null>(null);
-
 
     const calculateDays = () => {
         if (!data.startdate || !data.enddate) return 0;
@@ -24,13 +22,10 @@ export default function Leave({ leaves, remainingCasual, remainingMedical, remai
         const start = new Date(data.startdate);
         const end = new Date(data.enddate);
 
-        const diff =
-            Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+        const diff = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
         return diff > 0 ? diff : 0;
     };
-
-
 
     const { data, setData, post, processing, errors, reset } = useForm({
         leave_type: 'Casual Leave',
@@ -50,13 +45,13 @@ export default function Leave({ leaves, remainingCasual, remainingMedical, remai
             remaining = remainingCasual;
         } else if (data.leave_type === 'Medical Leave') {
             remaining = remainingMedical;
+        } else if (data.leave_type === 'Earned Leave') {
+            remaining = remainingEarned;
         }
 
         // 🔥 Balance check
         if (requestedDays > remaining) {
-            setBalanceError(
-                `Requested ${requestedDays} day(s), but only ${remaining} ${data.leave_type} remaining.`
-            );
+            setBalanceError(`Requested ${requestedDays} day(s), but only ${remaining} ${data.leave_type} remaining.`);
             return;
         }
 
@@ -76,20 +71,16 @@ export default function Leave({ leaves, remainingCasual, remainingMedical, remai
         }
     }, [errors]);
 
-
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Leave Management" />
 
             {/* Main Layout */}
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 p-6">
-
+            <div className="grid grid-cols-1 gap-6 p-6 lg:grid-cols-4">
                 {/* LEFT COLUMN */}
                 <div className="space-y-6">
-
                     {/* Casual Leave Card */}
-                    <div className="bg-white rounded-xl shadow p-5 flex items-center gap-4">
+                    <div className="flex items-center gap-4 rounded-xl bg-white p-5 shadow">
                         <CalendarCheck className="h-10 w-10 text-blue-600" />
                         <div>
                             <p className="text-sm text-gray-500">Casual Leave Remaining</p>
@@ -98,7 +89,7 @@ export default function Leave({ leaves, remainingCasual, remainingMedical, remai
                     </div>
 
                     {/* Medical Leave Card */}
-                    <div className="bg-white rounded-xl shadow p-5 flex items-center gap-4">
+                    <div className="flex items-center gap-4 rounded-xl bg-white p-5 shadow">
                         <HeartPulse className="h-10 w-10 text-green-600" />
                         <div>
                             <p className="text-sm text-gray-500">Medical Leave Remaining</p>
@@ -107,7 +98,7 @@ export default function Leave({ leaves, remainingCasual, remainingMedical, remai
                     </div>
 
                     {/* Earned Leave Card */}
-                    <div className="bg-white rounded-xl shadow p-5 flex items-center gap-4">
+                    <div className="flex items-center gap-4 rounded-xl bg-white p-5 shadow">
                         <Blocks className="h-10 w-10 text-purple-600" />
                         <div>
                             <p className="text-sm text-gray-500">Earned Leave Remaining</p>
@@ -118,7 +109,7 @@ export default function Leave({ leaves, remainingCasual, remainingMedical, remai
                     {/* Apply Leave Card */}
                     <div
                         onClick={() => setShowModal(true)}
-                        className="cursor-pointer bg-indigo-600 text-white rounded-xl shadow p-5 flex items-center gap-4 hover:bg-indigo-700 transition"
+                        className="flex cursor-pointer items-center gap-4 rounded-xl bg-indigo-600 p-5 text-white shadow transition hover:bg-indigo-700"
                     >
                         <PlusCircle className="h-10 w-10" />
                         <div>
@@ -134,49 +125,55 @@ export default function Leave({ leaves, remainingCasual, remainingMedical, remai
                             <span className="font-semibold"> January 01, 2026</span>.
                         </p>
                     </div>
-
                 </div>
 
                 {/* RIGHT COLUMN */}
-                <div className="lg:col-span-3 bg-white rounded-xl shadow p-6">
-                    <h2 className="text-xl font-bold mb-4">Leave History</h2>
+                <div className="rounded-xl bg-white p-6 shadow lg:col-span-3">
+                    <h2 className="mb-4 text-xl font-bold">Leave History</h2>
 
                     <div className="overflow-x-auto">
-                        <table className="w-full border border-gray-200 rounded text-sm">
+                        <table className="w-full rounded border border-gray-200 text-sm">
                             <thead>
-                            <tr className="bg-gray-100 text-left">
-                                <th className="border px-4 py-2">Type</th>
-                                <th className="border px-4 py-2">Dates</th>
-                                <th className="border px-4 py-2">Reason</th>
-                                <th className="border px-4 py-2">Replacement</th>
-                                <th className="border px-4 py-2">Status</th>
-                            </tr>
+                                <tr className="bg-gray-100 text-left">
+                                    <th className="border px-4 py-2">Type</th>
+                                    <th className="border px-4 py-2">Dates</th>
+                                    <th className="border px-4 py-2">Reason</th>
+                                    <th className="border px-4 py-2">Replacement</th>
+                                    <th className="border px-4 py-2">Status</th>
+                                </tr>
                             </thead>
                             <tbody>
-                            {leaves.length > 0 ? (
-                                leaves.map((l: any) => (
-                                    <tr key={l.id} className="hover:bg-gray-50">
-                                        <td className="border px-4 py-2">{l.type}</td>
-                                        <td className="border px-4 py-2">{l.start_date} → {l.end_date}</td>
-                                        <td className="border px-4 py-2">{l.reason ?? '—'}</td>
-                                        <td className="border px-4 py-2">{l.replacement_name ?? '—'}</td>
-                                        <td className="border px-4 py-2">
-                                                <span className={`px-2 py-1 rounded text-xs font-medium
-                                                    ${l.status === 'Approved by Registrar' ? 'bg-green-100 text-green-700' :
-                                                    l.status === 'Denied by Head' ? 'bg-red-100 text-red-700' :
-                                                        'bg-yellow-100 text-yellow-700'}`}>
+                                {leaves.length > 0 ? (
+                                    leaves.map((l: any) => (
+                                        <tr key={l.id} className="hover:bg-gray-50">
+                                            <td className="border px-4 py-2">{l.type}</td>
+                                            <td className="border px-4 py-2">
+                                                {l.start_date} → {l.end_date}
+                                            </td>
+                                            <td className="border px-4 py-2">{l.reason ?? '—'}</td>
+                                            <td className="border px-4 py-2">{l.replacement_name ?? '—'}</td>
+                                            <td className="border px-4 py-2">
+                                                <span
+                                                    className={`rounded px-2 py-1 text-xs font-medium ${
+                                                        l.status === 'Approved by Registrar'
+                                                            ? 'bg-green-100 text-green-700'
+                                                            : l.status === 'Denied by Head'
+                                                              ? 'bg-red-100 text-red-700'
+                                                              : 'bg-yellow-100 text-yellow-700'
+                                                    }`}
+                                                >
                                                     {l.status}
                                                 </span>
+                                            </td>
+                                        </tr>
+                                    ))
+                                ) : (
+                                    <tr>
+                                        <td colSpan={4} className="py-4 text-center text-gray-500">
+                                            No leave history found
                                         </td>
                                     </tr>
-                                ))
-                            ) : (
-                                <tr>
-                                    <td colSpan={4} className="text-center py-4 text-gray-500">
-                                        No leave history found
-                                    </td>
-                                </tr>
-                            )}
+                                )}
                             </tbody>
                         </table>
                     </div>
@@ -185,12 +182,11 @@ export default function Leave({ leaves, remainingCasual, remainingMedical, remai
 
             {/* MODAL (unchanged logic) */}
             {showModal && (
-                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-                    <div className="bg-white p-6 rounded-xl shadow-lg w-96">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+                    <div className="w-96 rounded-xl bg-white p-6 shadow-lg">
+                        <h2 className="mb-4 text-lg font-bold">Request Leave</h2>
 
-                        <h2 className="text-lg font-bold mb-4">Request Leave</h2>
-
-                        <label className="block mb-1 text-sm font-medium">Leave Type</label>
+                        <label className="mb-1 block text-sm font-medium">Leave Type</label>
                         <select
                             value={data.leave_type}
                             onChange={(e) => {
@@ -201,68 +197,54 @@ export default function Leave({ leaves, remainingCasual, remainingMedical, remai
                                     setData('medical_file', null);
                                 }
                             }}
-                            className="w-full border rounded p-2 mb-1"
+                            className="mb-1 w-full rounded border p-2"
                         >
-                        <option value="Casual Leave">Casual Leave</option>
+                            <option value="Casual Leave">Casual Leave</option>
                             <option value="Medical Leave">Medical Leave</option>
                             <option value="Earned Leave">Earned Leave</option>
                             {/*<option value="Duty Leave">Duty Leave</option>*/}
                         </select>
-                        {errors.leave_type && (
-                            <p className="text-red-600 text-sm mb-2">{errors.leave_type}</p>
-                        )}
+                        {errors.leave_type && <p className="mb-2 text-sm text-red-600">{errors.leave_type}</p>}
 
-
-                        <label className="block mb-1 text-sm font-medium">Start Date</label>
+                        <label className="mb-1 block text-sm font-medium">Start Date</label>
                         <input
                             type="date"
                             value={data.startdate}
                             onChange={(e) => setData('startdate', e.target.value)}
-                            className="w-full border rounded p-2 mb-1"
+                            className="mb-1 w-full rounded border p-2"
                         />
-                        {errors.startdate && (
-                            <p className="text-red-600 text-sm mb-2">{errors.startdate}</p>
-                        )}
+                        {errors.startdate && <p className="mb-2 text-sm text-red-600">{errors.startdate}</p>}
 
-                        <label className="block mb-1 text-sm font-medium">End Date</label>
+                        <label className="mb-1 block text-sm font-medium">End Date</label>
                         <input
                             type="date"
                             value={data.enddate}
                             onChange={(e) => setData('enddate', e.target.value)}
-                            className="w-full border rounded p-2 mb-1"
+                            className="mb-1 w-full rounded border p-2"
                         />
-                        {errors.enddate && (
-                            <p className="text-red-600 text-sm mb-2">{errors.enddate}</p>
-                        )}
+                        {errors.enddate && <p className="mb-2 text-sm text-red-600">{errors.enddate}</p>}
 
                         {data.leave_type === 'Medical Leave' && (
                             <>
-                                <label className="block mb-1 text-sm font-medium">Medical Certificate</label>
+                                <label className="mb-1 block text-sm font-medium">Medical Certificate</label>
                                 <input
                                     type="file"
                                     accept=".pdf,.jpg,.jpeg,.png"
                                     onChange={(e) => setData('medical_file', e.target.files?.[0] || null)}
-                                    className="w-full border rounded p-2 mb-1"
+                                    className="mb-1 w-full rounded border p-2"
                                 />
 
-                                {errors.medical_file && (
-                                    <p className="text-red-600 text-sm mb-2">
-                                        {errors.medical_file}
-                                    </p>
-                                )}
+                                {errors.medical_file && <p className="mb-2 text-sm text-red-600">{errors.medical_file}</p>}
                             </>
                         )}
 
-                        <label className="block mb-1 text-sm font-medium">Reason</label>
+                        <label className="mb-1 block text-sm font-medium">Reason</label>
                         <textarea
                             value={data.reason}
                             onChange={(e) => setData('reason', e.target.value)}
-                            className="w-full border rounded p-2 mb-1"
+                            className="mb-1 w-full rounded border p-2"
                         />
-                        {errors.reason && (
-                            <p className="text-red-600 text-sm mb-2">{errors.reason}</p>
-                        )}
-
+                        {errors.reason && <p className="mb-2 text-sm text-red-600">{errors.reason}</p>}
 
                         {/*<label className="block mb-1 text-sm font-medium">Replacement</label>
                         <input
@@ -274,9 +256,7 @@ export default function Leave({ leaves, remainingCasual, remainingMedical, remai
                             <p className="text-red-600 text-sm mb-2">{errors.replace}</p>
                         )}*/}
 
-                        <label className="block mb-1 text-sm font-medium">
-                            Replacement
-                        </label>
+                        <label className="mb-1 block text-sm font-medium">Replacement</label>
                         <SearchableSelect
                             items={employees}
                             value={data.replace}
@@ -285,24 +265,18 @@ export default function Leave({ leaves, remainingCasual, remainingMedical, remai
                             labelKey="name"
                             valueKey="employee_id"
                         />
-                        {errors.replace && (
-                            <p className="text-red-600 text-sm mb-2">
-                                {errors.replace}
-                            </p>
-                        )}
+                        {errors.replace && <p className="mb-2 text-sm text-red-600">{errors.replace}</p>}
 
-                        <div
-                            className="mb-2"
-                        />
+                        <div className="mb-2" />
 
                         <div className="flex justify-end gap-3">
-                            <button onClick={() => setShowModal(false)} className="px-4 py-2 bg-gray-200 rounded">
+                            <button onClick={() => setShowModal(false)} className="rounded bg-gray-200 px-4 py-2">
                                 Cancel
                             </button>
                             <button
                                 onClick={submitLeave}
                                 disabled={processing}
-                                className="px-4 py-2 bg-indigo-600 text-white rounded disabled:opacity-50"
+                                className="rounded bg-indigo-600 px-4 py-2 text-white disabled:opacity-50"
                             >
                                 Submit
                             </button>
@@ -313,20 +287,13 @@ export default function Leave({ leaves, remainingCasual, remainingMedical, remai
 
             {balanceError && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-                    <div className="bg-white rounded-xl p-6 w-96 shadow-lg">
-                        <h2 className="text-lg font-bold text-red-600 mb-2">
-                            Leave Balance Exceeded
-                        </h2>
+                    <div className="w-96 rounded-xl bg-white p-6 shadow-lg">
+                        <h2 className="mb-2 text-lg font-bold text-red-600">Leave Balance Exceeded</h2>
 
-                        <p className="text-gray-700 mb-4">
-                            {balanceError}
-                        </p>
+                        <p className="mb-4 text-gray-700">{balanceError}</p>
 
                         <div className="flex justify-end">
-                            <button
-                                onClick={() => setBalanceError(null)}
-                                className="px-4 py-2 bg-red-600 text-white rounded"
-                            >
+                            <button onClick={() => setBalanceError(null)} className="rounded bg-red-600 px-4 py-2 text-white">
                                 OK
                             </button>
                         </div>
@@ -336,28 +303,19 @@ export default function Leave({ leaves, remainingCasual, remainingMedical, remai
 
             {dateConflictError && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-                    <div className="bg-white rounded-xl p-6 w-96 shadow-lg">
-                        <h2 className="text-lg font-bold text-red-600 mb-2">
-                            Leave Date Conflict
-                        </h2>
+                    <div className="w-96 rounded-xl bg-white p-6 shadow-lg">
+                        <h2 className="mb-2 text-lg font-bold text-red-600">Leave Date Conflict</h2>
 
-                        <p className="text-gray-700 mb-4">
-                            {dateConflictError}
-                        </p>
+                        <p className="mb-4 text-gray-700">{dateConflictError}</p>
 
                         <div className="flex justify-end">
-                            <button
-                                onClick={() => setDateConflictError(null)}
-                                className="px-4 py-2 bg-red-600 text-white rounded"
-                            >
+                            <button onClick={() => setDateConflictError(null)} className="rounded bg-red-600 px-4 py-2 text-white">
                                 OK
                             </button>
                         </div>
                     </div>
                 </div>
             )}
-
-
         </AppLayout>
     );
 }
