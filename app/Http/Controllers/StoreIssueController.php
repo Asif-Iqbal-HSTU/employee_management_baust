@@ -34,7 +34,7 @@ class StoreIssueController extends Controller
 
     public function storeman_index()
     {
-        $pending = IssueVoucher::where('allowed_by_head', 'Yes')
+        $pending = IssueVoucher::where('allowed_by_registrar', 'Yes')
             ->where('issued_by_storeman', 'No')
             ->with(['product', 'requisitionedBy', 'department'])
             ->orderBy('date', 'asc')
