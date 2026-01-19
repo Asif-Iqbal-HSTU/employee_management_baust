@@ -96,7 +96,7 @@ export function AppSidebar() {
 
     if (authUser?.employee_id == 15012) {
         mainNavItems.push(
-            {
+/*            {
                 title: (
                     <span className="flex w-full items-center gap-2">
                         <span>Leave Finalization</span>
@@ -106,7 +106,7 @@ export function AppSidebar() {
                 href: '/registrar/leave-requests',
                 category: 'Leave Management',
                 icon: TicketsPlane,
-            },
+            },*/
             {
                 title: (
                     <span className="flex w-full items-center gap-2">

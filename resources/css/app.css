@@ -181,3 +181,94 @@
 
 
 }
+
+/* React Big Calendar Dark Mode */
+.dark .rbc-calendar {
+    background-color: transparent;
+}
+
+.dark .rbc-toolbar {
+    color: #e5e7eb;
+}
+
+.dark .rbc-toolbar button {
+    color: #e5e7eb;
+    background-color: #374151;
+    border-color: #4b5563;
+}
+
+.dark .rbc-toolbar button:hover {
+    background-color: #4b5563;
+    color: #fff;
+}
+
+.dark .rbc-toolbar button.rbc-active {
+    background-color: #3b82f6;
+    border-color: #3b82f6;
+    color: #fff;
+}
+
+.dark .rbc-header {
+    color: #d1d5db;
+    border-color: #374151;
+    background-color: #1f2937;
+}
+
+.dark .rbc-month-view,
+.dark .rbc-time-view {
+    border-color: #374151;
+}
+
+.dark .rbc-month-row {
+    border-color: #374151;
+}
+
+.dark .rbc-day-bg {
+    background-color: #1f2937;
+    border-color: #374151;
+}
+
+.dark .rbc-day-bg + .rbc-day-bg {
+    border-color: #374151;
+}
+
+.dark .rbc-off-range-bg {
+    background-color: #111827;
+}
+
+.dark .rbc-today {
+    background-color: rgba(59, 130, 246, 0.2);
+}
+
+.dark .rbc-event {
+    color: white;
+    background-color: #3b82f6;
+}
+
+.dark .rbc-event.rbc-selected {
+    background-color: #2563eb;
+}
+
+.dark .rbc-date-cell {
+    color: #d1d5db;
+}
+
+.dark .rbc-date-cell.rbc-off-range {
+    color: #6b7280;
+}
+
+.dark .rbc-show-more {
+    color: #93c5fd;
+    background-color: transparent;
+}
+
+.dark .rbc-overlay {
+    background-color: #1f2937;
+    border-color: #374151;
+}
+
+.dark .rbc-overlay-header {
+    border-color: #374151;
+    color: #e5e7eb;
+}
+
