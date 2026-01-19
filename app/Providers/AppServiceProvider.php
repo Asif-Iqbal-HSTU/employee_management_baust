@@ -107,7 +107,7 @@ class AppServiceProvider extends ServiceProvider
                 $registrarVoucherPending = 0;
 
 
-                $registrarVoucherPending = IssueVoucher::where('allowed_by_registrar', 'No')->count();
+                $registrarVoucherPending = IssueVoucher::where('allowed_by_registrar', 'No')->where('allowed_by_head', 'Yes')->count();
 
                 return [
                     'registrar_voucher_pending' => $registrarVoucherPending,
