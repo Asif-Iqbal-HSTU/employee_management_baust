@@ -50,7 +50,7 @@ export default function Leave({ leaves, remainingCasual, remainingMedical, remai
         }
 
         // 🔥 Balance check
-        if (requestedDays > remaining) {
+        if (data.leave_type !== 'Duty Leave' && requestedDays > remaining) {
             setBalanceError(`Requested ${requestedDays} day(s), but only ${remaining} ${data.leave_type} remaining.`);
             return;
         }
@@ -154,13 +154,12 @@ export default function Leave({ leaves, remainingCasual, remainingMedical, remai
                                             <td className="border px-4 py-2">{l.replacement_name ?? '—'}</td>
                                             <td className="border px-4 py-2">
                                                 <span
-                                                    className={`rounded px-2 py-1 text-xs font-medium ${
-                                                        l.status === 'Approved by Registrar'
-                                                            ? 'bg-green-100 text-green-700'
-                                                            : l.status === 'Denied by Head'
-                                                              ? 'bg-red-100 text-red-700'
-                                                              : 'bg-yellow-100 text-yellow-700'
-                                                    }`}
+                                                    className={`rounded px-2 py-1 text-xs font-medium ${l.status === 'Approved by Registrar'
+                                                        ? 'bg-green-100 text-green-700'
+                                                        : l.status === 'Denied by Head'
+                                                            ? 'bg-red-100 text-red-700'
+                                                            : 'bg-yellow-100 text-yellow-700'
+                                                        }`}
                                                 >
                                                     {l.status}
                                                 </span>
@@ -202,7 +201,7 @@ export default function Leave({ leaves, remainingCasual, remainingMedical, remai
                             <option value="Casual Leave">Casual Leave</option>
                             <option value="Medical Leave">Medical Leave</option>
                             <option value="Earned Leave">Earned Leave</option>
-                            {/*<option value="Duty Leave">Duty Leave</option>*/}
+                            <option value="Duty Leave">Duty Leave</option>
                         </select>
                         {errors.leave_type && <p className="mb-2 text-sm text-red-600">{errors.leave_type}</p>}
 

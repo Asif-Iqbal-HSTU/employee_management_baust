@@ -29,7 +29,7 @@ class LeaveController extends Controller
             ->get();
 
         // Default yearly limits
-        $defaultCasual  = 20;
+        $defaultCasual = 20;
         $defaultMedical = 15;
         $defaultEarned = 30;
 
@@ -37,7 +37,8 @@ class LeaveController extends Controller
         $usedCasual = $leaves
             ->where('type', 'Casual Leave')
             ->whereIn('status', ['Sent to Registrar', 'Approved by Registrar'])
-            ->sum(fn ($leave) =>
+            ->sum(
+                fn($leave) =>
                 Carbon::parse($leave->start_date)
                     ->diffInDays(Carbon::parse($leave->end_date)) + 1
             );
@@ -46,15 +47,17 @@ class LeaveController extends Controller
         $usedMedical = $leaves
             ->where('type', 'Medical Leave')
             ->whereIn('status', ['Sent to Registrar', 'Approved by Registrar'])
-            ->sum(fn ($leave) =>
+            ->sum(
+                fn($leave) =>
                 Carbon::parse($leave->start_date)
                     ->diffInDays(Carbon::parse($leave->end_date)) + 1
             );
-// Used medical leave days
+        // Used medical leave days
         $usedEarned = $leaves
             ->where('type', 'Earned Leave')
             ->whereIn('status', ['Sent to Registrar', 'Approved by Registrar'])
-            ->sum(fn ($leave) =>
+            ->sum(
+                fn($leave) =>
                 Carbon::parse($leave->start_date)
                     ->diffInDays(Carbon::parse($leave->end_date)) + 1
             );
@@ -72,14 +75,14 @@ class LeaveController extends Controller
             ->get();
 
         return inertia('Leave/index', [
-            'leaves'           => $leaves,
-            'remainingCasual'  => max(0, $defaultCasual - $usedCasual),
+            'leaves' => $leaves,
+            'remainingCasual' => max(0, $defaultCasual - $usedCasual),
             'remainingMedical' => max(0, $defaultMedical - $usedMedical),
             'remainingEarned' => max(0, $defaultEarned - $usedEarned),
-            'usedCasual'       => $usedCasual,
-            'usedMedical'      => $usedMedical,
-            'usedEarned'       => $usedEarned,
-            'employees'        => $employees,
+            'usedCasual' => $usedCasual,
+            'usedMedical' => $usedMedical,
+            'usedEarned' => $usedEarned,
+            'employees' => $employees,
         ]);
     }
 
@@ -144,7 +147,7 @@ class LeaveController extends Controller
 
         return inertia('Leave/head', [
             'leaves' => $pendingLeaves,
-            'employees'     => $employees,
+            'employees' => $employees,
         ]);
     }
 
@@ -155,14 +158,14 @@ class LeaveController extends Controller
             ->get()
             ->map(function ($leave) {
                 return [
-                    'type'        => $leave->type,
-                    'start_date'  => $leave->start_date,
-                    'end_date'    => $leave->end_date,
-                    'days'        =>
+                    'type' => $leave->type,
+                    'start_date' => $leave->start_date,
+                    'end_date' => $leave->end_date,
+                    'days' =>
                         \Carbon\Carbon::parse($leave->start_date)
                             ->diffInDays(\Carbon\Carbon::parse($leave->end_date)) + 1,
-                    'replace'     => $leave->replace,
-                    'status'      => $leave->status,
+                    'replace' => $leave->replace,
+                    'status' => $leave->status,
                 ];
             });
 
@@ -181,7 +184,7 @@ class LeaveController extends Controller
 
         // Insert into DailyAttendance table for each date
         $start = Carbon::parse($leave->start_date);
-        $end   = Carbon::parse($leave->end_date);
+        $end = Carbon::parse($leave->end_date);
 
         while ($start->lte($end)) {
             DailyAttendance::updateOrCreate(
@@ -220,10 +223,10 @@ class LeaveController extends Controller
         //dd($request);
         $request->validate([
             'leave_type' => 'required|in:Medical Leave,Casual Leave,Earned Leave,Duty Leave',
-            'startdate'  => 'required|date',
-            'enddate'    => 'required|date|after_or_equal:startdate',
-            'reason'     => 'nullable|string',
-            'replace'    => 'nullable|string',
+            'startdate' => 'required|date',
+            'enddate' => 'required|date|after_or_equal:startdate',
+            'reason' => 'nullable|string',
+            'replace' => 'nullable|string',
             'medical_file' => [
                 'nullable',
                 'required_if:leave_type,Medical Leave',
@@ -265,18 +268,20 @@ class LeaveController extends Controller
             ->where('type', $request->leave_type)
             ->whereIn('status', ['Sent to Registrar', 'Approved by Registrar'])
             ->get()
-            ->sum(fn ($leave) =>
+            ->sum(
+                fn($leave) =>
                 Carbon::parse($leave->start_date)
                     ->diffInDays(Carbon::parse($leave->end_date)) + 1
             );
 
         $remaining = match ($request->leave_type) {
-            'Casual Leave'  => $defaultCasual - $used,
+            'Casual Leave' => $defaultCasual - $used,
             'Medical Leave' => $defaultMedical - $used,
+            'Duty Leave' => PHP_INT_MAX,
             default => PHP_INT_MAX,
         };
 
-        if ($requestedDays > $remaining) {
+        if ($request->leave_type !== 'Duty Leave' && $requestedDays > $remaining) {
             return back()->withErrors([
                 'balance' => "Requested {$requestedDays} days exceeds remaining {$remaining} days.",
             ]);
@@ -293,23 +298,23 @@ class LeaveController extends Controller
         // Create the leave
         $leave = Leave::create([
             'employee_id' => $user->employee_id,
-            'start_date'  => $request->startdate,
-            'end_date'    => $request->enddate,
-            'type'        => $request->leave_type,
-            'reason'      => $request->reason,
-            'replace'     => $request->replace,
-            'medical_file'=> $medicalPath,
-            'status'      => 'Requested to Head',
+            'start_date' => $request->startdate,
+            'end_date' => $request->enddate,
+            'type' => $request->leave_type,
+            'reason' => $request->reason,
+            'replace' => $request->replace,
+            'medical_file' => $medicalPath,
+            'status' => 'Requested to Head',
         ]);
 
-//        dd($leave);
+        //        dd($leave);
 
         // 🔔 Notify the department head
 //        $deptHead = User::whereHas('deptHead', function($q) use ($user) {
 //            $q->where('department_id', $user->assignment->department_id ?? 0);
 //        })->first();
 
-//        if ($deptHead) {
+        //        if ($deptHead) {
 //            $deptHead->notify(new NewLeaveRequest($user->name, $leave->id));
 //        }
 

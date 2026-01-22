@@ -13,7 +13,7 @@ class RegistrarLeaveController extends Controller
     // Show all leave requests waiting for Registrar
     public function index()
     {
-        $leaves = Leave::with(['user.assignment'])
+        $leaves = Leave::with(['user.assignment.department', 'user.assignment.designation'])
             ->where('status', 'Sent to Registrar')
             ->orderBy('created_at', 'desc')
             ->get();
@@ -35,7 +35,7 @@ class RegistrarLeaveController extends Controller
 
         // Insert into DailyAttendance table for each date
         $start = Carbon::parse($leave->start_date);
-        $end   = Carbon::parse($leave->end_date);
+        $end = Carbon::parse($leave->end_date);
 
         while ($start->lte($end)) {
             DailyAttendance::updateOrCreate(
