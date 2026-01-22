@@ -85,13 +85,26 @@ class AppServiceProvider extends ServiceProvider
                 if (!$user) {
                     return [
                         'pending_issues' => 0,
+                        'head_voucher_pending' => 0,
                     ];
+                }
+
+                $headVoucherPending = 0;
+                $deptHead = DB::table('dept_heads')
+                    ->where('employee_id', $user->employee_id)
+                    ->first();
+
+                if ($deptHead) {
+                    $headVoucherPending = IssueVoucher::where('department_id', $deptHead->department_id)
+                        ->where('allowed_by_head', 'No')
+                        ->count();
                 }
 
                 return [
                     'pending_issues' => IssueVoucher::where('allowed_by_head', 'Yes')
                         ->where('issued_by_storeman', 'No')
                         ->count(),
+                    'head_voucher_pending' => $headVoucherPending,
                 ];
             },
             'voucherRegistrarCounts' => function () {

@@ -63,7 +63,17 @@ export function AppSidebar() {
     }
 
     if (authUser?.headed_department) {
-        mainNavItems.push({ title: 'Store Requisitions', href: '/dept-head/store/requisitions', category: 'Store', icon: Clock });
+        mainNavItems.push({
+            title: (
+                <span className="flex w-full items-center gap-2">
+                    <span>Store Requisitions</span>
+                    <Badge count={storeCounts.head_voucher_pending} />
+                </span>
+            ),
+            href: '/dept-head/store/requisitions',
+            category: 'Store',
+            icon: Clock,
+        });
     }
 
     if (authUser?.employee_id == 25052) {
