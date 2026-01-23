@@ -254,7 +254,7 @@ Route::middleware(['auth'])->group(function () {
 Route::middleware(['auth'])->group(function () {
     Route::get('/dept-head/attendance', [DeptHeadAttendanceController::class, 'index'])
         ->name('depthead.attendance');
-//    Route::get('/dept-head/employee/{employeeId}/monthly', [DeptHeadAttendanceController::class, 'employeeMonthly'])
+    //    Route::get('/dept-head/employee/{employeeId}/monthly', [DeptHeadAttendanceController::class, 'employeeMonthly'])
 //        ->name('depthead.employee.monthly');
 
     // routes/web.php
@@ -278,7 +278,8 @@ Route::middleware(['auth'])->group(function () {
 
 Route::get('/zk/logs', [App\Http\Controllers\ZKTecoController::class, 'getLogs']);
 Route::get('/zk/users', [App\Http\Controllers\ZKTecoController::class, 'getUsers']);
-Route::get('/allEmployeeAttendance', [App\Http\Controllers\AttendanceController::class, 'employeeList'])->name('employeeList');;
+Route::get('/allEmployeeAttendance', [App\Http\Controllers\AttendanceController::class, 'employeeList'])->name('employeeList');
+;
 Route::get('/employee-attendance/{employeeId}', [App\Http\Controllers\AttendanceController::class, 'getUserAttendance']);
 //Route::get('/employee-attendance/{employeeId}', [App\Http\Controllers\AttendanceController::class, 'getUserAttendance']);
 Route::get('/today-entry', [App\Http\Controllers\AttendanceController::class, 'todayEntryList'])->name('attendance.today');
@@ -340,9 +341,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
         [LeaveController::class, 'employeeLeaves']
     )->name('deptHead.employee.leaves');
 
+    // Cancellation Routes (User)
+    Route::post('/leaves/{id}/cancel', [LeaveController::class, 'cancelByUser'])->name('leave.cancel');
+    Route::post('/leaves/{id}/request-cancel', [LeaveController::class, 'requestCancellation'])->name('leave.request-cancel');
+
+    // Cancellation Approval Routes (Head)
+    Route::post('/dept-head/leaves/{id}/approve-cancel', [LeaveController::class, 'approveCancellation'])->name('deptHead.leaves.approve-cancel');
+    Route::post('/dept-head/leaves/{id}/deny-cancel', [LeaveController::class, 'denyCancellation'])->name('deptHead.leaves.deny-cancel');
+
 });
 
 use App\Http\Controllers\RegistrarLeaveController;
+use App\Http\Controllers\VCLeaveController;
 
 Route::middleware(['auth', 'verified'])->group(function () {
 
@@ -355,6 +365,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::post('/registrar/leave-requests/{id}/deny', [RegistrarLeaveController::class, 'deny'])
         ->name('registrar.leave.deny');
+});
+
+// VC Leave Approval Panel (for senior officers like Registrar, Treasurer, Exam Controller)
+Route::middleware(['auth', 'verified'])->group(function () {
+
+    Route::get('/vc/leave-requests', [VCLeaveController::class, 'index'])
+        ->name('vc.leave.index');
+
+    Route::post('/vc/leaves/{id}/approve', [VCLeaveController::class, 'approve'])
+        ->name('vc.leave.approve');
+
+    Route::post('/vc/leaves/{id}/deny', [VCLeaveController::class, 'deny'])
+        ->name('vc.leave.deny');
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {
@@ -402,12 +425,14 @@ Route::middleware(['auth'])->group(function () {
 
 
     Route::get('/dept-head/store/requisitions', [IssueVoucherController::class, 'depthead_allow'])->name('voucher.head.allow');
-    Route::post('/dept-head/store/requisitions/{voucher}/approve',
+    Route::post(
+        '/dept-head/store/requisitions/{voucher}/approve',
         [IssueVoucherController::class, 'approveByHead']
     )->name('voucher.head.approve');
 
-// 💡 NEW ROUTE FOR BULK APPROVAL
-    Route::post('/dept-head/store/requisitions/bulk-approve',
+    // 💡 NEW ROUTE FOR BULK APPROVAL
+    Route::post(
+        '/dept-head/store/requisitions/bulk-approve',
         [IssueVoucherController::class, 'bulkApproveByHead']
     )->name('voucher.head.approve.bulk');
 
@@ -419,13 +444,13 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/storeman/issues/{voucher}', [StoreIssueController::class, 'storeman_issue'])
         ->name('voucher.storeman.issue');
 
-//    Route::get('/voucher/export/{employee}/{date}', [StoreIssueController::class, 'export'])->name('voucher.export');
+    //    Route::get('/voucher/export/{employee}/{date}', [StoreIssueController::class, 'export'])->name('voucher.export');
 
     // Route for the AJAX request to get the HTML preview
     Route::get('/voucher/preview/{employee}/{date}', [StoreIssueController::class, 'previewVoucher'])
         ->name('voucher.preview');
 
-// Route for the final PDF stream (used by the button inside the modal)
+    // Route for the final PDF stream (used by the button inside the modal)
     Route::get('/voucher/stream/{employee}/{date}', [StoreIssueController::class, 'streamVoucherPdf'])
         ->name('voucher.stream.pdf');
 
@@ -466,5 +491,5 @@ Route::get('/duty-roster', [DutyRosterController::class, 'index'])->name('duty.r
 Route::post('/duty-roster', [DutyRosterController::class, 'store'])->name('duty.roster.store');
 
 
-require __DIR__.'/settings.php';
-require __DIR__.'/auth.php';
+require __DIR__ . '/settings.php';
+require __DIR__ . '/auth.php';

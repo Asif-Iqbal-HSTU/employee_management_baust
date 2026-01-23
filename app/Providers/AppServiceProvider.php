@@ -54,6 +54,7 @@ class AppServiceProvider extends ServiceProvider
                     return [
                         'head_pending' => 0,
                         'registrar_pending' => 0,
+                        'vc_pending' => 0,
                     ];
                 }
 
@@ -74,9 +75,13 @@ class AppServiceProvider extends ServiceProvider
                 // 🧾 Registrar pending
                 $registrarPending = Leave::where('status', 'Sent to Registrar')->count();
 
+                // 👔 VC pending (senior officers' leaves)
+                $vcPending = Leave::where('status', 'Requested to VC')->count();
+
                 return [
                     'head_pending' => $headPending,
                     'registrar_pending' => $registrarPending,
+                    'vc_pending' => $vcPending,
                 ];
             },
             'storeCounts' => function () {

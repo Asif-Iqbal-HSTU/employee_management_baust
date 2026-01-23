@@ -31,28 +31,32 @@ class IssueVoucherController extends Controller
 
     public function store(Request $request)
     {
-//        dd($request);
         $request->validate([
-            'store_product_id'      => 'required',
             'requisition_employee_id' => 'required|exists:users,employee_id',
-            'department_id'         => 'required|exists:departments,id',
-            'to_be_used_in'         => 'required|string',
-            'to_be_used_in_category'=> 'required|string',
-            'date'                  => 'required|date',
-            'requisitioned_quantity'=> 'required|integer|min:1',
+            'department_id' => 'required|exists:departments,id',
+            'to_be_used_in' => 'required|exists:departments,id',
+            'to_be_used_in_category' => 'required|string',
+            'date' => 'required|date',
+            'items' => 'required|array|min:1',
+            'items.*.store_product_id' => 'required|exists:store_products,id',
+            'items.*.requisitioned_quantity' => 'required|integer|min:1',
         ]);
 
-        IssueVoucher::create([
-            'store_product_id'       => $request->store_product_id,
-            'requisition_employee_id'=> $request->requisition_employee_id,
-            'department_id'          => $request->department_id,
-            'to_be_used_in'          => $request->to_be_used_in,
-            'to_be_used_in_category' => $request->to_be_used_in_category,
-            'date'                   => $request->date,
-            'requisitioned_quantity' => $request->requisitioned_quantity,
-        ]);
+        DB::transaction(function () use ($request) {
+            foreach ($request->items as $item) {
+                IssueVoucher::create([
+                    'store_product_id' => $item['store_product_id'],
+                    'requisition_employee_id' => $request->requisition_employee_id,
+                    'department_id' => $request->department_id,
+                    'to_be_used_in' => $request->to_be_used_in,
+                    'to_be_used_in_category' => $request->to_be_used_in_category,
+                    'date' => $request->date,
+                    'requisitioned_quantity' => $item['requisitioned_quantity'],
+                ]);
+            }
+        });
 
-        return back()->with('success', 'Voucher created successfully.');
+        return back()->with('success', 'Vouchers created successfully.');
     }
 
     public function depthead_allow(Request $request)

@@ -20,7 +20,7 @@ use App\Models\Holiday;
 
 class AttendanceController extends Controller
 {
-//    public function dashboardData()
+    //    public function dashboardData()
 //    {
 //        $employeeId = Auth::user()->employee_id;
 //
@@ -69,7 +69,7 @@ class AttendanceController extends Controller
         foreach ($deviceIps as $ip) {
             $zk = new \Rats\Zkteco\Lib\ZKTeco($ip);
 
-            if (! $zk->connect()) {
+            if (!$zk->connect()) {
                 continue;
             }
 
@@ -83,33 +83,42 @@ class AttendanceController extends Controller
                     $collected->push([
                         'employee_id' => $user['userid'],
                         'name' => $user['name'] ?? null,
-                       /* 'card' => $user['card'] ?? null,
-                        'role' => $user['role'] ?? null,*/
+                        /* 'card' => $user['card'] ?? null,
+                         'role' => $user['role'] ?? null,*/
                     ]);
                 }
             }
         }
 
+        $newUsers = 0;
+        $skippedUsers = 0;
+
         foreach ($collected->unique('employee_id') as $u) {
-            User::updateOrCreate(
-                ['employee_id' => $u['employee_id']],
-                [
-                    'name' => $u['name'],
+            // Check if user already exists in database
+            $existingUser = User::where('employee_id', $u['employee_id'])->first();
+
+            if ($existingUser) {
+                // User exists - skip updating (preserve their name & password)
+                $skippedUsers++;
+            } else {
+                // User doesn't exist - create new user
+                User::create([
+                    'employee_id' => $u['employee_id'],
+                    'name' => $u['name'] ?? 'Employee ' . $u['employee_id'],
                     'password' => Hash::make($u['employee_id']),
-                    /*'card' => $u['card'],
-                    'role' => $u['role'],*/
-                ]
-            );
+                ]);
+                $newUsers++;
+            }
         }
 
-        return back()->with('success', 'Users synced from all devices.');
+        return back()->with('success', "Sync complete: {$newUsers} new user(s) added, {$skippedUsers} existing user(s) unchanged.");
     }
 
     public function syncDeviceLogs()
     {
         $zk = new ZKTeco('192.168.1.201', 4370); // Replace IP
 
-        if (! $zk->connect()) {
+        if (!$zk->connect()) {
             return redirect()->back()->with('error', 'Failed to connect to device.');
         }
 
@@ -134,7 +143,8 @@ class AttendanceController extends Controller
 
         foreach ($grouped as $data) {
             $user = \App\Models\User::where('employee_id', $data['employee_id'])->first();
-            if (!$user) continue;
+            if (!$user)
+                continue;
 
             \App\Models\Attendance::updateOrCreate(
                 ['user_id' => $user->id, 'date' => $data['date']],
@@ -212,7 +222,7 @@ class AttendanceController extends Controller
 
             if (!empty($lateEmployees)) {
                 // transform to arrays for safe JSON serialization
-                $lateDetails[$departmentName] = array_map(function($e) {
+                $lateDetails[$departmentName] = array_map(function ($e) {
                     return [
                         'employee_id' => $e->employee_id,
                         'name' => $e->name,
@@ -223,7 +233,7 @@ class AttendanceController extends Controller
             }
 
             if (!empty($absentEmployees)) {
-                $absentDetails[$departmentName] = array_map(function($e) {
+                $absentDetails[$departmentName] = array_map(function ($e) {
                     return [
                         'employee_id' => $e->employee_id,
                         'name' => $e->name,
@@ -295,7 +305,7 @@ class AttendanceController extends Controller
             ];
 
             if ($lateEmployees) {
-                $lateDetails[$departmentName] = array_map(fn ($e) => [
+                $lateDetails[$departmentName] = array_map(fn($e) => [
                     'employee_id' => $e->employee_id,
                     'name' => $e->name,
                     'designation' => $e->designation,
@@ -304,7 +314,7 @@ class AttendanceController extends Controller
             }
 
             if ($absentEmployees) {
-                $absentDetails[$departmentName] = array_map(fn ($e) => [
+                $absentDetails[$departmentName] = array_map(fn($e) => [
                     'employee_id' => $e->employee_id,
                     'name' => $e->name,
                     'designation' => $e->designation,
@@ -372,7 +382,7 @@ class AttendanceController extends Controller
 
                     $status = $attendance->status;
 
-                    if($status && str_contains($status, 'late entry')){
+                    if ($status && str_contains($status, 'late entry')) {
                         $lateCount++;
 
                         // Attach in_time to employee record
@@ -500,7 +510,7 @@ class AttendanceController extends Controller
                 'name' => $user[1],
                 'password' => trim($user[2]),
                 'device_index' => $user[3],
-                'role' => match($user[4]) {
+                'role' => match ($user[4]) {
                     0 => 'User',
                     2 => 'Enroller',
                     12 => 'Manager',
@@ -668,8 +678,10 @@ class AttendanceController extends Controller
             $entryTime = $entries[0];
             $exitTime = end($entries);
 
-            if ($entryTime->greaterThan($officeStart)) $lateCount++;
-            if ($exitTime->lessThan($officeEnd)) $earlyExitCount++;
+            if ($entryTime->greaterThan($officeStart))
+                $lateCount++;
+            if ($exitTime->lessThan($officeEnd))
+                $earlyExitCount++;
 
             $days[] = [
                 'date' => $date,
@@ -699,7 +711,7 @@ class AttendanceController extends Controller
         foreach ($deviceIps as $ip) {
             $zk = new \Rats\Zkteco\Lib\ZKTeco($ip);
 
-            if (! $zk->connect()) {
+            if (!$zk->connect()) {
                 continue; // Skip unreachable device
             }
 
@@ -710,15 +722,15 @@ class AttendanceController extends Controller
             foreach ($logs as $log) {
                 $allLogs->push([
                     'employee_id' => $log['id'],
-                    'timestamp'   => $log['timestamp'],
-                    'uid'         => $log['uid'],
-                    'type'        => $log['type'],
-                    'created_at'  => now(),
-                    'updated_at'  => now(),
+                    'timestamp' => $log['timestamp'],
+                    'uid' => $log['uid'],
+                    'type' => $log['type'],
+                    'created_at' => now(),
+                    'updated_at' => now(),
                 ]);
             }
 
-//            $zk->clearAttendance(); // 🔥 DELETE logs from device
+            //            $zk->clearAttendance(); // 🔥 DELETE logs from device
             $zk->enableDevice();
             $zk->disconnect();
         }
@@ -823,9 +835,9 @@ class AttendanceController extends Controller
                 }
 
                 $summary[] = [
-                    'date'   => $date,
+                    'date' => $date,
                     'absent' => $absentCount,
-                    'late'   => $lateCount,
+                    'late' => $lateCount,
                 ];
             }
 
@@ -886,8 +898,8 @@ class AttendanceController extends Controller
             $absentToday = $totalEmployees - $presentToday;
 
             $todaySummary = [
-                'total'  => $totalEmployees,
-                'late'   => $lateToday,
+                'total' => $totalEmployees,
+                'late' => $lateToday,
                 'absent' => $absentToday,
             ];
 
@@ -904,9 +916,9 @@ class AttendanceController extends Controller
                 $absentCount = $totalEmployees - $presentCount;
 
                 $graph[] = [
-                    'date'   => $d,
+                    'date' => $d,
                     'absent' => $absentCount,
-                    'late'   => $lateCount,
+                    'late' => $lateCount,
                 ];
             }
 
@@ -918,7 +930,7 @@ class AttendanceController extends Controller
 
         return inertia('Departments/deptList', [
             'departments' => $departments,
-            'attendance'  => $deptSummaries,
+            'attendance' => $deptSummaries,
         ]);
     }
 
@@ -969,19 +981,19 @@ class AttendanceController extends Controller
 
             $report[] = [
                 'employee_id' => $employee->employee_id,
-                'name'        => $employee->name,
+                'name' => $employee->name,
                 'designation' => $employee->designation,
-                'in_time'       => $inTime ?: null,   // no "Absent" string here
-                'out_time'      => $outTime ?: null,
+                'in_time' => $inTime ?: null,   // no "Absent" string here
+                'out_time' => $outTime ?: null,
                 'allowed_entry' => $allowedEntry, // <-- send to frontend
             ];
         }
 
         return inertia('Departments/Attendance', [
-            'date'    => $date,
-            'report'  => $report,
+            'date' => $date,
+            'report' => $report,
             'department' => [
-                'id'   => $department->id,
+                'id' => $department->id,
                 'name' => $department->dept_name,
             ],
         ]);
@@ -991,7 +1003,7 @@ class AttendanceController extends Controller
     {
         $user = Auth::user();
         $department = Department::findOrFail($departmentId);
-//        $date = $request->input('date', \Carbon\Carbon::today()->toDateString());
+        //        $date = $request->input('date', \Carbon\Carbon::today()->toDateString());
 //        $departmentId   = $department->department_id;
         $departmentName = $department->dept_name;
 
@@ -1015,19 +1027,19 @@ class AttendanceController extends Controller
 
             $report[] = [
                 'employee_id' => $emp->employee_id,
-                'name'        => $emp->name,
+                'name' => $emp->name,
                 'designation' => $emp->designation,
-                'in_time'     => $attendance?->in_time ?? null,
-                'out_time'    => $attendance?->out_time ?? null,
-                'status'      => $attendance?->status ?? null,   // 👈 USING DB STATUS
-                'remarks'     => $attendance?->remarks ?? null,
+                'in_time' => $attendance?->in_time ?? null,
+                'out_time' => $attendance?->out_time ?? null,
+                'status' => $attendance?->status ?? null,   // 👈 USING DB STATUS
+                'remarks' => $attendance?->remarks ?? null,
             ];
         }
 
         return inertia('Departments/Attendance', [
-            'date'       => $date,
+            'date' => $date,
             'department' => ['id' => $departmentId, 'name' => $departmentName],
-            'report'     => $report,
+            'report' => $report,
         ]);
     }
 
@@ -1054,9 +1066,9 @@ class AttendanceController extends Controller
 
         // --- Same logic as dashboard
         $month = (int) $request->input('month', now()->month);
-        $year  = (int) $request->input('year', now()->year);
+        $year = (int) $request->input('year', now()->year);
         $start = Carbon::create($year, $month, 1)->startOfMonth();
-        $end   = Carbon::create($year, $month, 1)->endOfMonth();
+        $end = Carbon::create($year, $month, 1)->endOfMonth();
         $today = Carbon::today();
 
         // per-day punches
@@ -1070,7 +1082,7 @@ class AttendanceController extends Controller
 
         $byDate = [];
         foreach ($calendarRows as $row) {
-            $in  = $row->first_ts ? Carbon::parse($row->first_ts)->format('H:i') : null;
+            $in = $row->first_ts ? Carbon::parse($row->first_ts)->format('H:i') : null;
             $out = ($row->last_ts && $row->last_ts !== $row->first_ts)
                 ? Carbon::parse($row->last_ts)->format('H:i')
                 : null;
@@ -1079,12 +1091,33 @@ class AttendanceController extends Controller
 
         // Holidays (reuse your same list)
         $holidayDates = collect([
-            '2025-02-15','2025-02-21','2025-03-26','2025-03-28',
-            '2025-03-29','2025-03-30','2025-03-31','2025-04-01','2025-04-02','2025-04-03',
-            '2025-04-14','2025-05-01','2025-05-11',
-            '2025-06-05','2025-06-06','2025-06-07','2025-06-08','2025-06-09','2025-06-10',
-            '2025-07-06','2025-08-05','2025-08-16','2025-09-05','2025-10-01','2025-10-02',
-            '2025-12-16','2025-12-25',
+            '2025-02-15',
+            '2025-02-21',
+            '2025-03-26',
+            '2025-03-28',
+            '2025-03-29',
+            '2025-03-30',
+            '2025-03-31',
+            '2025-04-01',
+            '2025-04-02',
+            '2025-04-03',
+            '2025-04-14',
+            '2025-05-01',
+            '2025-05-11',
+            '2025-06-05',
+            '2025-06-06',
+            '2025-06-07',
+            '2025-06-08',
+            '2025-06-09',
+            '2025-06-10',
+            '2025-07-06',
+            '2025-08-05',
+            '2025-08-16',
+            '2025-09-05',
+            '2025-10-01',
+            '2025-10-02',
+            '2025-12-16',
+            '2025-12-25',
         ])->map(fn($d) => Carbon::parse($d)->toDateString());
 
         $holidayNames = collect([
@@ -1094,50 +1127,55 @@ class AttendanceController extends Controller
         // build logs
         $calendarLogs = [];
         for ($d = $start->copy(); $d->lte($end); $d->addDay()) {
-            $dateStr   = $d->toDateString();
-            $hasPunch  = array_key_exists($dateStr, $byDate);
+            $dateStr = $d->toDateString();
+            $hasPunch = array_key_exists($dateStr, $byDate);
             $isHoliday = $holidayDates->contains($dateStr);
             $isWeekend = in_array($d->dayOfWeek, [5, 6]);
-            $isFuture  = $d->gt($today);
+            $isFuture = $d->gt($today);
 
             $label = $isHoliday ? ($holidayNames[$dateStr] ?? 'Holiday') : ($isWeekend ? 'Weekend' : null);
 
             if ($hasPunch) {
                 $status = $isHoliday ? 'holiday' : ($isWeekend ? 'weekend' : 'present');
                 $calendarLogs[] = [
-                    'date'     => $dateStr,
-                    'in_time'  => $byDate[$dateStr]['in_time'],
+                    'date' => $dateStr,
+                    'in_time' => $byDate[$dateStr]['in_time'],
                     'out_time' => $byDate[$dateStr]['out_time'],
-                    'status'   => $status,
-                    'label'    => $label,
+                    'status' => $status,
+                    'label' => $label,
                 ];
             } elseif ($isHoliday) {
-                $calendarLogs[] = ['date'=>$dateStr,'in_time'=>null,'out_time'=>null,'status'=>'holiday','label'=>$label];
+                $calendarLogs[] = ['date' => $dateStr, 'in_time' => null, 'out_time' => null, 'status' => 'holiday', 'label' => $label];
             } elseif ($isWeekend) {
-                $calendarLogs[] = ['date'=>$dateStr,'in_time'=>null,'out_time'=>null,'status'=>'weekend','label'=>$label];
+                $calendarLogs[] = ['date' => $dateStr, 'in_time' => null, 'out_time' => null, 'status' => 'weekend', 'label' => $label];
             } elseif ($isFuture) {
-                $calendarLogs[] = ['date'=>$dateStr,'in_time'=>null,'out_time'=>null,'status'=>'future','label'=>null];
+                $calendarLogs[] = ['date' => $dateStr, 'in_time' => null, 'out_time' => null, 'status' => 'future', 'label' => null];
             } else {
-                $calendarLogs[] = ['date'=>$dateStr,'in_time'=>null,'out_time'=>null,'status'=>'absent','label'=>null];
+                $calendarLogs[] = ['date' => $dateStr, 'in_time' => null, 'out_time' => null, 'status' => 'absent', 'label' => null];
             }
         }
 
         // summary
-        $absence = 0; $late = 0; $early = 0;
+        $absence = 0;
+        $late = 0;
+        $early = 0;
         foreach ($calendarLogs as $row) {
-            if ($row['status'] === 'absent') $absence++;
+            if ($row['status'] === 'absent')
+                $absence++;
             elseif ($row['status'] === 'present') {
-                if ($row['in_time']  && $row['in_time']  > '08:00') $late++;
-                if ($row['out_time'] && $row['out_time'] < '14:30') $early++;
+                if ($row['in_time'] && $row['in_time'] > '08:00')
+                    $late++;
+                if ($row['out_time'] && $row['out_time'] < '14:30')
+                    $early++;
             }
         }
-        $summary = ['absence'=>$absence,'late'=>$late,'early'=>$early];
+        $summary = ['absence' => $absence, 'late' => $late, 'early' => $early];
 
         return response()->json([
             'calendarLogs' => $calendarLogs,
-            'summary'      => $summary,
-            'month'        => $month,
-            'year'         => $year,
+            'summary' => $summary,
+            'month' => $month,
+            'year' => $year,
         ]);
     }
 
@@ -1146,7 +1184,7 @@ class AttendanceController extends Controller
         // Auto detect current month
         $today = now();
         $startDate = $today->copy()->startOfMonth();
-        $endDate   = $today->copy(); // till today
+        $endDate = $today->copy(); // till today
 
         // Collect working days (excluding Fri & Sat)
         $dates = collect();
@@ -1185,7 +1223,7 @@ class AttendanceController extends Controller
                     $present++;
 
                     $firstLog = Carbon::parse($logs->first())->format('H:i:s');
-                    $lastLog  = Carbon::parse($logs->last())->format('H:i:s');
+                    $lastLog = Carbon::parse($logs->last())->format('H:i:s');
 
                     if ($firstLog > '08:00:00') {
                         $late++;
@@ -1201,21 +1239,21 @@ class AttendanceController extends Controller
             $absent = $totalWorkdays - $present;
 
             $report[] = [
-                'name'        => $employee->name,
-                'id'        => $employee->employee_id,
+                'name' => $employee->name,
+                'id' => $employee->employee_id,
                 'designation' => $employee->designation,
-                'total_days'  => $totalWorkdays,
-                'present'     => $present,
-                'absent'      => $absent,
-                'late'        => $late,
+                'total_days' => $totalWorkdays,
+                'present' => $present,
+                'absent' => $absent,
+                'late' => $late,
                 'early_leave' => $earlyLeave,
             ];
         }
 
         return inertia('Departments/MonthlyReport', [
-            'report'      => $report,
-            'department'  => $department,
-            'monthName'   => $today->format('F Y'), // e.g. "September 2025"
+            'report' => $report,
+            'department' => $department,
+            'monthName' => $today->format('F Y'), // e.g. "September 2025"
         ]);
     }
 
@@ -1263,7 +1301,7 @@ class AttendanceController extends Controller
                     $present++;
 
                     $firstLog = Carbon::parse($logs->first());
-                    $lastLog  = Carbon::parse($logs->last());
+                    $lastLog = Carbon::parse($logs->last());
 
                     // Late if after 08:00
                     if ($firstLog->gt(Carbon::parse($date . ' 08:00:00'))) {
@@ -1289,30 +1327,30 @@ class AttendanceController extends Controller
             $totalWorkdays = $dates->count();
             $absent = $totalWorkdays - $present;
 
-/*            $overtimeHours = round($totalOvertimeMinutes / 60, 2);
-            $overtimeEquivalentDays = round($overtimeHours / 6.5, 2);*/
+            /*            $overtimeHours = round($totalOvertimeMinutes / 60, 2);
+                        $overtimeEquivalentDays = round($overtimeHours / 6.5, 2);*/
             $overtimeHours = $totalOvertimeMinutes / 60;
             $overtimeEquivalentDays = $overtimeHours / 6.5;
 
             $report[] = [
-                'id'                  => $employee->employee_id,
-                'name'                => $employee->name,
-                'designation'         => $employee->designation,
-                'total_days'          => $totalWorkdays,
-                'present'             => $present,
-                'absent'              => $absent,
-                'late'                => $late,
-                'early_leave'         => $earlyLeave,
-                'overtime_days'       => $overtimeDays,
-                'overtime_hours'      => $overtimeHours,
+                'id' => $employee->employee_id,
+                'name' => $employee->name,
+                'designation' => $employee->designation,
+                'total_days' => $totalWorkdays,
+                'present' => $present,
+                'absent' => $absent,
+                'late' => $late,
+                'early_leave' => $earlyLeave,
+                'overtime_days' => $overtimeDays,
+                'overtime_hours' => $overtimeHours,
                 'overtime_equiv_days' => $overtimeEquivalentDays,
             ];
         }
 
         return inertia('Departments/MonthlyReport', [
-            'report'      => $report,
-            'department'  => $department,
-            'monthName'   => $today->format('F Y'),
+            'report' => $report,
+            'department' => $department,
+            'monthName' => $today->format('F Y'),
         ]);
     }
 
@@ -1374,7 +1412,7 @@ class AttendanceController extends Controller
                     $present++;
 
                     $firstLog = Carbon::parse($logs->first());
-                    $lastLog  = Carbon::parse($logs->last());
+                    $lastLog = Carbon::parse($logs->last());
 
                     // Late if after 08:00
                     if ($firstLog->gt(Carbon::parse("$date 08:00:00"))) {
@@ -1405,33 +1443,33 @@ class AttendanceController extends Controller
             $overtimeEquivalentDays = $overtimeHours / 6.5;
 
             $report[] = [
-                'id'                  => $employee->employee_id,
-                'name'                => $employee->name,
-                'designation'         => $employee->designation,
-                'total_days'          => $totalWorkdays,
-                'present'             => $present,
-                'absent'              => $absent,
-                'late'                => $late,
-                'early_leave'         => $earlyLeave,
-                'overtime_days'       => $overtimeDays,
-                'overtime_hours'      => $overtimeHours,
+                'id' => $employee->employee_id,
+                'name' => $employee->name,
+                'designation' => $employee->designation,
+                'total_days' => $totalWorkdays,
+                'present' => $present,
+                'absent' => $absent,
+                'late' => $late,
+                'early_leave' => $earlyLeave,
+                'overtime_days' => $overtimeDays,
+                'overtime_hours' => $overtimeHours,
                 'overtime_equiv_days' => $overtimeEquivalentDays,
             ];
         }
 
         // --- 7️⃣ Send data to Inertia view
         return inertia('Departments/MonthlyReport', [
-            'report'      => $report,
-            'department'  => $department,
-            'monthName'   => $today->format('F Y'),
-            'holidays'    => $holidayDates, // optional: show holidays in UI
+            'report' => $report,
+            'department' => $department,
+            'monthName' => $today->format('F Y'),
+            'holidays' => $holidayDates, // optional: show holidays in UI
         ]);
     }
 
     public function dateRangeReport(Request $request, $deptId)
     {
         $startDate = Carbon::parse($request->input('startDate', now()->startOfMonth()));
-        $endDate   = Carbon::parse($request->input('endDate', now()->subDay()));
+        $endDate = Carbon::parse($request->input('endDate', now()->subDay()));
 
         // --- 1️⃣ Get holidays within the range
         $holidayDates = Holiday::whereBetween('date', [$startDate, $endDate])
@@ -1479,10 +1517,12 @@ class AttendanceController extends Controller
                     $present++;
 
                     $firstLog = Carbon::parse($logs->first());
-                    $lastLog  = Carbon::parse($logs->last());
+                    $lastLog = Carbon::parse($logs->last());
 
-                    if ($firstLog->gt(Carbon::parse("$date 08:00:00"))) $late++;
-                    if ($lastLog->lt(Carbon::parse("$date 14:30:00"))) $earlyLeave++;
+                    if ($firstLog->gt(Carbon::parse("$date 08:00:00")))
+                        $late++;
+                    if ($lastLog->lt(Carbon::parse("$date 14:30:00")))
+                        $earlyLeave++;
 
                     $workedMinutes = $lastLog->diffInMinutes($firstLog);
                     $requiredMinutes = 6 * 60 + 30;
@@ -1500,26 +1540,26 @@ class AttendanceController extends Controller
             $overtimeEquivalentDays = $overtimeHours / 6.5;
 
             $report[] = [
-                'id'                  => $employee->employee_id,
-                'name'                => $employee->name,
-                'designation'         => $employee->designation,
-                'total_days'          => $totalWorkdays,
-                'present'             => $present,
-                'absent'              => $absent,
-                'late'                => $late,
-                'early_leave'         => $earlyLeave,
-                'overtime_days'       => $overtimeDays,
-                'overtime_hours'      => $overtimeHours,
+                'id' => $employee->employee_id,
+                'name' => $employee->name,
+                'designation' => $employee->designation,
+                'total_days' => $totalWorkdays,
+                'present' => $present,
+                'absent' => $absent,
+                'late' => $late,
+                'early_leave' => $earlyLeave,
+                'overtime_days' => $overtimeDays,
+                'overtime_hours' => $overtimeHours,
                 'overtime_equiv_days' => $overtimeEquivalentDays,
             ];
         }
 
         return inertia('Departments/MonthlyReport', [
-            'report'      => $report,
-            'department'  => $department,
-            'monthName'   => $startDate->format('d M Y') . ' - ' . $endDate->format('d M Y'),
-            'startDate'   => $startDate->toDateString(),
-            'endDate'     => $endDate->toDateString(),
+            'report' => $report,
+            'department' => $department,
+            'monthName' => $startDate->format('d M Y') . ' - ' . $endDate->format('d M Y'),
+            'startDate' => $startDate->toDateString(),
+            'endDate' => $endDate->toDateString(),
         ]);
     }
 

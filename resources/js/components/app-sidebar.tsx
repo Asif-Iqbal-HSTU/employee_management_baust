@@ -106,17 +106,17 @@ export function AppSidebar() {
 
     if (authUser?.employee_id == 15012) {
         mainNavItems.push(
-/*            {
-                title: (
-                    <span className="flex w-full items-center gap-2">
-                        <span>Leave Finalization</span>
-                        <Badge count={leaveCounts.registrar_pending} />
-                    </span>
-                ),
-                href: '/registrar/leave-requests',
-                category: 'Leave Management',
-                icon: TicketsPlane,
-            },*/
+            /*            {
+                            title: (
+                                <span className="flex w-full items-center gap-2">
+                                    <span>Leave Finalization</span>
+                                    <Badge count={leaveCounts.registrar_pending} />
+                                </span>
+                            ),
+                            href: '/registrar/leave-requests',
+                            category: 'Leave Management',
+                            icon: TicketsPlane,
+                        },*/
             {
                 title: (
                     <span className="flex w-full items-center gap-2">
@@ -142,6 +142,25 @@ export function AppSidebar() {
 
     if (authUser?.employee_id == 15005) {
         mainNavItems.push({ title: 'All Departments', href: '/departments', category: 'Attendance', icon: Logs });
+    }
+
+    // Vice Chancellor (VC) - Senior Officers Leave Approval
+    if (authUser?.employee_id == 25045) {
+        mainNavItems.push(
+            { title: 'All Departments', href: '/departments', category: 'Attendance', icon: Logs },
+            { title: 'Late Summary Report', href: '/late-summary-report', category: 'Attendance', icon: Logs },
+            {
+                title: (
+                    <span className="flex w-full items-center gap-2">
+                        <span>Senior Officers' Leave</span>
+                        <Badge count={leaveCounts?.vc_pending || 0} />
+                    </span>
+                ),
+                href: '/vc/leave-requests',
+                category: 'Leave Management',
+                icon: TicketsPlane,
+            },
+        );
     }
 
     if (authUser?.employee_id == 15302 || authUser?.employee_id == 19001) {

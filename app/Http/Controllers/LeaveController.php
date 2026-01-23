@@ -36,7 +36,7 @@ class LeaveController extends Controller
         // Used casual leave days
         $usedCasual = $leaves
             ->where('type', 'Casual Leave')
-            ->whereIn('status', ['Sent to Registrar', 'Approved by Registrar'])
+            ->whereIn('status', ['Sent to Registrar', 'Approved by Registrar', 'Approved by VC', 'Cancellation Requested'])
             ->sum(
                 fn($leave) =>
                 Carbon::parse($leave->start_date)
@@ -46,7 +46,7 @@ class LeaveController extends Controller
         // Used medical leave days
         $usedMedical = $leaves
             ->where('type', 'Medical Leave')
-            ->whereIn('status', ['Sent to Registrar', 'Approved by Registrar'])
+            ->whereIn('status', ['Sent to Registrar', 'Approved by Registrar', 'Approved by VC', 'Cancellation Requested'])
             ->sum(
                 fn($leave) =>
                 Carbon::parse($leave->start_date)
@@ -55,24 +55,36 @@ class LeaveController extends Controller
         // Used medical leave days
         $usedEarned = $leaves
             ->where('type', 'Earned Leave')
-            ->whereIn('status', ['Sent to Registrar', 'Approved by Registrar'])
+            ->whereIn('status', ['Sent to Registrar', 'Approved by Registrar', 'Approved by VC', 'Cancellation Requested'])
             ->sum(
                 fn($leave) =>
                 Carbon::parse($leave->start_date)
                     ->diffInDays(Carbon::parse($leave->end_date)) + 1
             );
 
+        // Employees from user's own department (for default selection)
         $employees = DB::table('users')
             ->join('user_assignments', 'users.employee_id', '=', 'user_assignments.employee_id')
             ->leftJoin('designations', 'designations.id', '=', 'user_assignments.designation_id')
-            ->where('user_assignments.department_id', $user->assignment->department_id)
+            ->leftJoin('departments', 'departments.id', '=', 'user_assignments.department_id')
             ->select(
                 'users.employee_id',
                 'users.name',
-                'designations.designation_name as designation'
+                'designations.designation_name as designation',
+                'user_assignments.department_id',
+                'departments.dept_name'
             )
             ->orderBy('users.name')
             ->get();
+
+        // All departments for dropdown
+        $departments = DB::table('departments')
+            ->select('id', 'dept_name')
+            ->orderBy('dept_name')
+            ->get();
+
+        // User's current department ID
+        $userDeptId = $user->assignment?->department_id;
 
         return inertia('Leave/index', [
             'leaves' => $leaves,
@@ -83,6 +95,8 @@ class LeaveController extends Controller
             'usedMedical' => $usedMedical,
             'usedEarned' => $usedEarned,
             'employees' => $employees,
+            'departments' => $departments,
+            'userDeptId' => $userDeptId,
         ]);
     }
 
@@ -102,6 +116,11 @@ class LeaveController extends Controller
 
         $departmentId = $deptHead->department_id;
 
+        // Default yearly limits
+        $defaultCasual = 20;
+        $defaultMedical = 15;
+        $defaultEarned = 30;
+
         // 2️⃣ Pending leave requests (LEFT)
         $pendingLeaves = Leave::query()
             ->join('users', 'users.employee_id', '=', 'leaves.employee_id')
@@ -112,7 +131,7 @@ class LeaveController extends Controller
             ->leftJoin('users as rep', 'rep.employee_id', '=', 'leaves.replace')
 
             ->where('user_assignments.department_id', $departmentId)
-            ->where('leaves.status', 'Requested to head')
+            ->whereIn('leaves.status', ['Requested to head', 'Cancellation Requested'])
             ->orderBy('leaves.start_date', 'desc')
             ->select(
                 'leaves.id',
@@ -131,8 +150,40 @@ class LeaveController extends Controller
             )
             ->get();
 
+        // 3️⃣ Calculate leave balances for each applicant
+        $pendingLeaves = $pendingLeaves->map(function ($leave) use ($defaultCasual, $defaultMedical, $defaultEarned) {
+            // Fetch all approved/forwarded leaves for this employee
+            $employeeLeaves = Leave::where('employee_id', $leave->employee_id)
+                ->whereIn('status', ['Sent to Registrar', 'Approved by Registrar', 'Approved by VC', 'Cancellation Requested'])
+                ->get();
 
-        // 3️⃣ Employees for Leave Register (RIGHT)
+            // Calculate used days for each type
+            $usedCasual = $employeeLeaves
+                ->where('type', 'Casual Leave')
+                ->sum(fn($l) => Carbon::parse($l->start_date)->diffInDays(Carbon::parse($l->end_date)) + 1);
+
+            $usedMedical = $employeeLeaves
+                ->where('type', 'Medical Leave')
+                ->sum(fn($l) => Carbon::parse($l->start_date)->diffInDays(Carbon::parse($l->end_date)) + 1);
+
+            $usedEarned = $employeeLeaves
+                ->where('type', 'Earned Leave')
+                ->sum(fn($l) => Carbon::parse($l->start_date)->diffInDays(Carbon::parse($l->end_date)) + 1);
+
+            // Calculate requested days for this leave
+            $requestedDays = Carbon::parse($leave->start_date)->diffInDays(Carbon::parse($leave->end_date)) + 1;
+
+            // Attach balance info
+            $leave->requested_days = $requestedDays;
+            $leave->remaining_casual = max(0, $defaultCasual - $usedCasual);
+            $leave->remaining_medical = max(0, $defaultMedical - $usedMedical);
+            $leave->remaining_earned = max(0, $defaultEarned - $usedEarned);
+
+            return $leave;
+        });
+
+
+        // 4️⃣ Employees for Leave Register (RIGHT)
         $employees = DB::table('users')
             ->join('user_assignments', 'users.employee_id', '=', 'user_assignments.employee_id')
             ->leftJoin('designations', 'designations.id', '=', 'user_assignments.designation_id')
@@ -145,9 +196,31 @@ class LeaveController extends Controller
             ->orderBy('users.name')
             ->get();
 
+        // 5️⃣ Employees on Leave Today
+        $today = Carbon::today()->toDateString();
+        $onLeaveToday = Leave::query()
+            ->join('users', 'users.employee_id', '=', 'leaves.employee_id')
+            ->join('user_assignments', 'users.employee_id', '=', 'user_assignments.employee_id')
+            ->leftJoin('designations', 'designations.id', '=', 'user_assignments.designation_id')
+            ->where('user_assignments.department_id', $departmentId)
+            ->whereIn('leaves.status', ['Sent to Registrar', 'Approved by Registrar'])
+            ->whereDate('leaves.start_date', '<=', $today)
+            ->whereDate('leaves.end_date', '>=', $today)
+            ->select(
+                'users.employee_id',
+                'users.name',
+                'designations.designation_name as designation',
+                'leaves.type',
+                'leaves.start_date',
+                'leaves.end_date'
+            )
+            ->get();
+
         return inertia('Leave/head', [
             'leaves' => $pendingLeaves,
             'employees' => $employees,
+            'onLeaveToday' => $onLeaveToday,
+            'today' => $today,
         ]);
     }
 
@@ -157,6 +230,13 @@ class LeaveController extends Controller
             ->orderBy('start_date', 'desc')
             ->get()
             ->map(function ($leave) {
+                // Lookup replacement employee name
+                $replacementName = null;
+                if ($leave->replace) {
+                    $replacer = User::where('employee_id', $leave->replace)->first();
+                    $replacementName = $replacer?->name;
+                }
+
                 return [
                     'type' => $leave->type,
                     'start_date' => $leave->start_date,
@@ -164,7 +244,7 @@ class LeaveController extends Controller
                     'days' =>
                         \Carbon\Carbon::parse($leave->start_date)
                             ->diffInDays(\Carbon\Carbon::parse($leave->end_date)) + 1,
-                    'replace' => $leave->replace,
+                    'replace' => $replacementName,
                     'status' => $leave->status,
                 ];
             });
@@ -237,12 +317,18 @@ class LeaveController extends Controller
         ]);
 
         $user = Auth::user();
+
+        // Check if user is a senior officer (requires VC approval)
+        $isSeniorOfficer = VCLeaveController::isSeniorOfficer($user->employee_id);
+
         // 🚫 Check overlapping leave dates
         $conflict = Leave::where('employee_id', $user->employee_id)
             ->whereIn('status', [
                 'Requested to Head',
+                'Requested to VC',
                 'Sent to Registrar',
                 'Approved by Registrar',
+                'Approved by VC',
             ])
             ->where(function ($q) use ($request) {
                 $q->whereDate('start_date', '<=', $request->enddate)
@@ -266,7 +352,7 @@ class LeaveController extends Controller
 
         $used = Leave::where('employee_id', $user->employee_id)
             ->where('type', $request->leave_type)
-            ->whereIn('status', ['Sent to Registrar', 'Approved by Registrar'])
+            ->whereIn('status', ['Sent to Registrar', 'Approved by Registrar', 'Approved by VC'])
             ->get()
             ->sum(
                 fn($leave) =>
@@ -295,6 +381,9 @@ class LeaveController extends Controller
                 ->store('medical-certificates', 'public');
         }
 
+        // Determine initial status based on whether user is a senior officer
+        $initialStatus = $isSeniorOfficer ? 'Requested to VC' : 'Requested to Head';
+
         // Create the leave
         $leave = Leave::create([
             'employee_id' => $user->employee_id,
@@ -304,20 +393,76 @@ class LeaveController extends Controller
             'reason' => $request->reason,
             'replace' => $request->replace,
             'medical_file' => $medicalPath,
-            'status' => 'Requested to Head',
+            'status' => $initialStatus,
         ]);
 
-        //        dd($leave);
+        $successMessage = $isSeniorOfficer
+            ? 'Leave Requested Successfully. Awaiting Vice Chancellor approval.'
+            : 'Leave Requested Successfully';
 
-        // 🔔 Notify the department head
-//        $deptHead = User::whereHas('deptHead', function($q) use ($user) {
-//            $q->where('department_id', $user->assignment->department_id ?? 0);
-//        })->first();
+        return redirect()->route('leave.index')->with('success', $successMessage);
+    }
 
-        //        if ($deptHead) {
-//            $deptHead->notify(new NewLeaveRequest($user->name, $leave->id));
-//        }
+    // 4️⃣ User cancels leave (Directly if not processed)
+    public function cancelByUser($id)
+    {
+        $leave = Leave::findOrFail($id);
+        $user = Auth::user();
 
-        return redirect()->route('leave.index')->with('success', 'Leave Requested Successfully');
+        if ($leave->employee_id !== $user->employee_id) {
+            abort(403, 'Unauthorized');
+        }
+
+        if (in_array($leave->status, ['Requested to Head', 'Requested to VC'])) {
+            $leave->delete();
+            return back()->with('success', 'Leave request cancelled.');
+        }
+
+        return back()->withErrors(['cancel_error' => 'Cannot delete processed leave. Request cancellation instead.']);
+    }
+
+    // 5️⃣ User requests cancellation (If already approved/forwarded)
+    public function requestCancellation($id)
+    {
+        $leave = Leave::findOrFail($id);
+        $user = Auth::user();
+
+        if ($leave->employee_id !== $user->employee_id) {
+            abort(403, 'Unauthorized');
+        }
+
+        if (in_array($leave->status, ['Sent to Registrar', 'Approved by Registrar', 'Approved by VC'])) {
+            $leave->update(['status' => 'Cancellation Requested']);
+            return back()->with('success', 'Cancellation requested to Department Head.');
+        }
+
+        return back()->withErrors(['cancel_error' => 'Invalid status for cancellation request.']);
+    }
+
+    // 6️⃣ Head approves cancellation
+    public function approveCancellation($id)
+    {
+        $leave = Leave::findOrFail($id);
+
+        // Delete associated attendance records
+        DailyAttendance::where('employee_id', $leave->employee_id)
+            ->whereBetween('date', [$leave->start_date, $leave->end_date])
+            ->delete();
+
+        // Delete the leave record (or we could soft delete / mark as Cancelled)
+        $leave->delete();
+
+        return back()->with('success', 'Leave cancellation approved and records deleted.');
+    }
+
+    // 7️⃣ Head denies cancellation
+    public function denyCancellation($id)
+    {
+        $leave = Leave::findOrFail($id);
+
+        // Revert to 'Approved by Registrar' as a safe default for active leaves
+        $leave->update(['status' => 'Approved by Registrar']);
+
+        return back()->with('success', 'Cancellation request denied. Leave remains active.');
     }
 }

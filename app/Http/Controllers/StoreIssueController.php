@@ -36,33 +36,46 @@ class StoreIssueController extends Controller
     {
         $pending = IssueVoucher::where('allowed_by_registrar', 'Yes')
             ->where('issued_by_storeman', 'No')
-            ->with(['product', 'requisitionedBy', 'department'])
+            ->with(['product', 'requisitionedBy.assignment.designation', 'department'])
             ->orderBy('date', 'asc')
             ->get();
 
         $issued = IssueVoucher::where('issued_by_storeman', 'Yes')
-            ->with(['product', 'requisitionedBy', 'department'])
+            ->with(['product', 'requisitionedBy.assignment.designation', 'department'])
             ->orderBy('updated_at', 'desc')
             ->get();
 
-        $pendingGrouped = $pending->groupBy(function($item) {
-            return $item->requisition_employee_id . '|' . $item->date;
-        })->map(function($group) {
+        $pendingGrouped = $pending->groupBy(function ($item) {
+            // Ensure date is string Y-m-d
+            $d = $item->date instanceof \DateTimeInterface ? $item->date->format('Y-m-d') : $item->date;
+            return $item->requisition_employee_id . '|' . $d;
+        })->map(function ($group) {
+            $first = $group->first();
+            $d = $first->date instanceof \DateTimeInterface ? $first->date->format('Y-m-d') : $first->date;
+
             return [
-                'employee_id' => $group->first()->requisition_employee_id,
-                'employee_name' => $group->first()->requisitionedBy->name ?? 'N/A',
-                'date' => $group->first()->date,
+                'employee_id' => $first->requisition_employee_id,
+                'employee_name' => $first->requisitionedBy->name ?? 'N/A',
+                'employee_designation' => $first->requisitionedBy->assignment->designation->designation_name ?? '',
+                'department_name' => $first->department->dept_name ?? '',
+                'date' => $d,
                 'items' => $group->values(),
             ];
         })->values();
 
-        $issuedGrouped = $issued->groupBy(function($item) {
-            return $item->requisition_employee_id . '|' . $item->date;
-        })->map(function($group) {
+        $issuedGrouped = $issued->groupBy(function ($item) {
+            $d = $item->date instanceof \DateTimeInterface ? $item->date->format('Y-m-d') : $item->date;
+            return $item->requisition_employee_id . '|' . $d;
+        })->map(function ($group) {
+            $first = $group->first();
+            $d = $first->date instanceof \DateTimeInterface ? $first->date->format('Y-m-d') : $first->date;
+
             return [
-                'employee_id' => $group->first()->requisition_employee_id,
-                'employee_name' => $group->first()->requisitionedBy->name ?? 'N/A',
-                'date' => $group->first()->date,
+                'employee_id' => $first->requisition_employee_id,
+                'employee_name' => $first->requisitionedBy->name ?? 'N/A',
+                'employee_designation' => $first->requisitionedBy->assignment->designation->designation_name ?? '',
+                'department_name' => $first->department->dept_name ?? '',
+                'date' => $d,
                 'items' => $group->values(),
             ];
         })->values();
@@ -94,12 +107,12 @@ class StoreIssueController extends Controller
     public function storeman_issue(Request $request, IssueVoucher $voucher)
     {
         $request->validate([
-            'sl_no'           => 'required|string',
-            'book_no'         => 'required|string',
-            'receiver'        => 'required|string',
+            'sl_no' => 'required|string',
+            'book_no' => 'required|string',
+            'receiver' => 'required|string',
             'issued_quantity' => 'required|integer|min:1',
-            'specification'   => 'nullable|string',
-            'budget_code'     => 'nullable|string',
+            'specification' => 'nullable|string',
+            'budget_code' => 'nullable|string',
         ]);
 
         $product = StoreProduct::findOrFail($voucher->store_product_id);
@@ -157,7 +170,7 @@ class StoreIssueController extends Controller
 
         $pdf = Pdf::loadView('pdf.stock-register', [
             'product' => $product,
-            'date'    => now()->format('d-m-Y'),
+            'date' => now()->format('d-m-Y'),
         ])->setPaper('legal', 'landscape');
 
         return $pdf->stream(
@@ -171,7 +184,7 @@ class StoreIssueController extends Controller
     public function previewVoucher($employee_id, $date)
     {
         $vouchers = IssueVoucher::where('requisition_employee_id', $employee_id)
-            ->where('date', $date)
+            ->whereDate('date', $date)
             ->where('issued_by_storeman', 'Yes') // 💡 Ensure only issued vouchers are previewed
             ->with(['product', 'requisitionedBy', 'department'])
             ->get();
@@ -203,7 +216,7 @@ class StoreIssueController extends Controller
     public function streamVoucherPdf($employee_id, $date)
     {
         $vouchers = IssueVoucher::where('requisition_employee_id', $employee_id)
-            ->where('date', $date)
+            ->whereDate('date', $date)
             ->where('issued_by_storeman', 'Yes') // 💡 Ensure only issued vouchers are streamed
             ->with(['product', 'requisitionedBy', 'department'])
             ->get();
