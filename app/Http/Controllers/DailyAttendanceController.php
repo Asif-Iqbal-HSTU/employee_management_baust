@@ -84,10 +84,33 @@ class DailyAttendanceController extends Controller
 
         foreach ($records as $r) {
 
+            $timing = DutyTimeResolver::resolve($r->employee_id, $r->day);
+
             $in = $r->in_time ? Carbon::parse($r->in_time)->format('H:i:s') : null;
             $out = $r->out_time ? Carbon::parse($r->out_time)->format('H:i:s') : null;
 
-            $timing = DutyTimeResolver::resolve($r->employee_id, $r->day);
+            // --- Smart In-Time Selection ---
+            // If the first punch is significantly earlier than the rostered start time (e.g., > 4 hours),
+            // it might be the OUT punch of a previous overnight shift.
+            if ($in && $timing['source'] === 'roster') {
+                $startThreshold = Carbon::parse($timing['start'])->subHours(4)->format('H:i:s');
+
+                // If current 'in' is before threshold, look for a better one
+                if ($in < $startThreshold) {
+                    $betterIn = DeviceLog::where('employee_id', $r->employee_id)
+                        ->whereDate('timestamp', $r->day)
+                        ->whereTime('timestamp', '>=', $startThreshold)
+                        ->orderBy('timestamp', 'asc')
+                        ->first();
+
+                    if ($betterIn) {
+                        $in = Carbon::parse($betterIn->timestamp)->format('H:i:s');
+                    } else {
+                        // If no punch found in the window, it might be late or absent for THIS shift
+                        $in = null;
+                    }
+                }
+            }
 
             if ($timing['is_overnight']) {
                 // Search for the last punch on the next day before noon
