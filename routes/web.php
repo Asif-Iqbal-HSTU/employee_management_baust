@@ -490,6 +490,9 @@ Route::post('/reports/late-summary/download', [ReportController::class, 'downloa
 Route::get('/duty-roster', [DutyRosterController::class, 'index'])->name('duty.roster');
 Route::post('/duty-roster', [DutyRosterController::class, 'store'])->name('duty.roster.store');
 
+Route::get('/duty-roster/security', [DutyRosterController::class, 'securityIndex'])->name('duty.roster.security');
+Route::post('/duty-roster/security', [DutyRosterController::class, 'securityStore'])->name('duty.roster.security.store');
+
 
 require __DIR__ . '/settings.php';
 require __DIR__ . '/auth.php';

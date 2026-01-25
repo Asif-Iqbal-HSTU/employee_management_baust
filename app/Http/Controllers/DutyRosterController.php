@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 //use Auth;
 use Carbon\Carbon;
+use App\Models\User;
+use Illuminate\Support\Facades\DB;
 
 class DutyRosterController extends Controller
 {
@@ -20,11 +22,11 @@ class DutyRosterController extends Controller
     {
         $data = $request->validate([
             'employee_ids' => 'required|array',
-            'start_date'   => 'required|date',
-            'end_date'     => 'required|date|after_or_equal:start_date',
-            'start_time'   => 'required',
-            'end_time'     => 'required',
-            'reason'       => 'nullable|string',
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:start_date',
+            'start_time' => 'required',
+            'end_time' => 'required',
+            'reason' => 'nullable|string',
         ]);
 
         $dates = Carbon::parse($data['start_date'])
@@ -39,8 +41,8 @@ class DutyRosterController extends Controller
                     ],
                     [
                         'start_time' => $data['start_time'],
-                        'end_time'   => $data['end_time'],
-                        'reason'     => $data['reason'],
+                        'end_time' => $data['end_time'],
+                        'reason' => $data['reason'],
                         'created_by' => Auth::user()->employee_id,
                     ]
                 );
@@ -48,5 +50,55 @@ class DutyRosterController extends Controller
         }
 
         return back()->with('success', 'Duty roster saved successfully.');
+    }
+
+    public function securityIndex(Request $request)
+    {
+        $weekStart = $request->input('week_start', Carbon::now()->startOfWeek(Carbon::FRIDAY)->format('Y-m-d'));
+        $weekEnd = Carbon::parse($weekStart)->addDays(6)->format('Y-m-d');
+
+        // Designation ID 68 is Security Guard
+        $guards = User::whereHas('assignment', function ($q) {
+            $q->where('designation_id', 68);
+        })->get(['employee_id', 'name']);
+
+        $existingRosters = DutyRoster::whereIn('employee_id', $guards->pluck('employee_id'))
+            ->whereBetween('date', [$weekStart, $weekEnd])
+            ->get();
+
+        return Inertia::render('DutyRoster/SecurityIndex', [
+            'guards' => $guards,
+            'existingRosters' => $existingRosters,
+            'currentWeekStart' => $weekStart
+        ]);
+    }
+
+    public function securityStore(Request $request)
+    {
+        $request->validate([
+            'entries' => 'required|array',
+            'entries.*.employee_id' => 'required|string',
+            'entries.*.date' => 'required|date',
+            'entries.*.start_time' => 'required',
+            'entries.*.end_time' => 'required',
+        ]);
+
+        DB::transaction(function () use ($request) {
+            foreach ($request->entries as $entry) {
+                DutyRoster::updateOrCreate(
+                    [
+                        'employee_id' => $entry['employee_id'],
+                        'date' => $entry['date'],
+                    ],
+                    [
+                        'start_time' => $entry['start_time'],
+                        'end_time' => $entry['end_time'],
+                        'created_by' => Auth::user()->employee_id,
+                    ]
+                );
+            }
+        });
+
+        return back()->with('success', 'Weekly duty roster saved successfully.');
     }
 }
