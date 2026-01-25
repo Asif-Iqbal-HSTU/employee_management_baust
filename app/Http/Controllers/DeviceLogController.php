@@ -14,14 +14,14 @@ class DeviceLogController extends Controller
 {
     public function syncRawLogs0()
     {
-//        $deviceIps = ['192.168.10.22'];
-        $deviceIps = ['192.168.10.20','192.168.10.21','192.168.10.22'];
+        //        $deviceIps = ['192.168.10.22'];
+        $deviceIps = ['192.168.10.20', '192.168.10.21', '192.168.10.22'];
         $batchSize = 1000;
 
         foreach ($deviceIps as $ip) {
             $zk = new \Rats\Zkteco\Lib\ZKTeco($ip);
 
-            if (! $zk->connect()) {
+            if (!$zk->connect()) {
                 continue; // Skip unreachable device
             }
 
@@ -32,11 +32,11 @@ class DeviceLogController extends Controller
             foreach ($logs as $log) {
                 $batch[] = [
                     'employee_id' => $log['id'],
-                    'timestamp'   => $log['timestamp'],
-                    'uid'         => $log['uid'],
-                    'type'        => $log['type'],
-                    'created_at'  => now(),
-                    'updated_at'  => now(),
+                    'timestamp' => $log['timestamp'],
+                    'uid' => $log['uid'],
+                    'type' => $log['type'],
+                    'created_at' => now(),
+                    'updated_at' => now(),
                 ];
 
                 if (count($batch) >= $batchSize) {
@@ -68,7 +68,7 @@ class DeviceLogController extends Controller
 
     public static function forDate($date)
     {
-        return self::where('start_date', '<=', $date)
+        return \App\Models\OfficeTime::where('start_date', '<=', $date)
             ->where('end_date', '>=', $date)
             ->orderBy('start_date', 'desc')
             ->first();
@@ -76,7 +76,7 @@ class DeviceLogController extends Controller
 
     public function syncRawLogsOriginal()
     {
-        $deviceIps = ['192.168.10.20','192.168.10.21','192.168.10.22'];
+        $deviceIps = ['192.168.10.20', '192.168.10.21', '192.168.10.22'];
         $batchSize = 1000;
 
         // Store affected attendance dates as:
@@ -104,11 +104,11 @@ class DeviceLogController extends Controller
 
                 $batch[] = [
                     'employee_id' => $log['id'],
-                    'timestamp'   => Carbon::parse($log['timestamp'])->format('Y-m-d H:i:s'),
-                    'uid'         => $log['uid'],
-                    'type'        => $log['type'],
-                    'created_at'  => now(),
-                    'updated_at'  => now(),
+                    'timestamp' => Carbon::parse($log['timestamp'])->format('Y-m-d H:i:s'),
+                    'uid' => $log['uid'],
+                    'type' => $log['type'],
+                    'created_at' => now(),
+                    'updated_at' => now(),
                 ];
 
                 if (count($batch) >= $batchSize) {
@@ -155,20 +155,22 @@ class DeviceLogController extends Controller
                 }
 
                 // Extract HH:MM only
-                $in  = Carbon::parse($row->in_time)->format('H:i');
+                $in = Carbon::parse($row->in_time)->format('H:i');
                 $out = Carbon::parse($row->out_time)->format('H:i');
 
                 // Status calculation
                 $status = [];
-                if ($in > '08:30:00') $status[] = 'late entry';
-                if ($out < '14:30:00') $status[] = 'early leave';
+                if ($in > '08:30:00')
+                    $status[] = 'late entry';
+                if ($out < '14:30:00')
+                    $status[] = 'early leave';
 
                 \App\Models\DailyAttendance::updateOrCreate(
                     ['employee_id' => $empId, 'date' => $date],
                     [
-                        'in_time'  => $in,
+                        'in_time' => $in,
                         'out_time' => $out,
-                        'status'   => $status ? implode(', ', $status) : 'ok',
+                        'status' => $status ? implode(', ', $status) : 'ok',
                     ]
                 );
             }
@@ -179,7 +181,7 @@ class DeviceLogController extends Controller
 
     public function syncRawLogs00()
     {
-        $deviceIps = ['192.168.10.20','192.168.10.21','192.168.10.22'];
+        $deviceIps = ['192.168.10.20', '192.168.10.21', '192.168.10.22'];
         $batchSize = 1000;
 
         // Store affected attendance dates
@@ -189,7 +191,8 @@ class DeviceLogController extends Controller
 
             $zk = new \Rats\Zkteco\Lib\ZKTeco($ip);
 
-            if (!$zk->connect()) continue;
+            if (!$zk->connect())
+                continue;
 
             $zk->disableDevice();
             $logs = $zk->getAttendance();
@@ -203,11 +206,11 @@ class DeviceLogController extends Controller
 
                 $batch[] = [
                     'employee_id' => $log['id'],
-                    'timestamp'   => Carbon::parse($log['timestamp'])->format('Y-m-d H:i:s'),
-                    'uid'         => $log['uid'],
-                    'type'        => $log['type'],
-                    'created_at'  => now(),
-                    'updated_at'  => now(),
+                    'timestamp' => Carbon::parse($log['timestamp'])->format('Y-m-d H:i:s'),
+                    'uid' => $log['uid'],
+                    'type' => $log['type'],
+                    'created_at' => now(),
+                    'updated_at' => now(),
                 ];
 
                 if (count($batch) >= $batchSize) {
@@ -247,9 +250,10 @@ class DeviceLogController extends Controller
                     ->selectRaw('MIN(`timestamp`) as in_time, MAX(`timestamp`) as out_time')
                     ->first();
 
-                if (!$row || !$row->in_time || !$row->out_time) continue;
+                if (!$row || !$row->in_time || !$row->out_time)
+                    continue;
 
-                $in  = Carbon::parse($row->in_time)->format('H:i');
+                $in = Carbon::parse($row->in_time)->format('H:i');
                 $out = Carbon::parse($row->out_time)->format('H:i');
 
                 // -------------------------------------
@@ -297,10 +301,10 @@ class DeviceLogController extends Controller
                 DailyAttendance::updateOrCreate(
                     ['employee_id' => $empId, 'date' => $date],
                     [
-                        'in_time'  => $in,
+                        'in_time' => $in,
                         'out_time' => $out,
-                        'status'   => $status,
-                        'remarks'  => $timing['source'], // office / roster
+                        'status' => $status,
+                        'remarks' => $timing['source'], // office / roster
                     ]
                 );
 
@@ -312,14 +316,15 @@ class DeviceLogController extends Controller
 
     public function syncRawLogs()
     {
-        $deviceIps = ['192.168.10.20','192.168.10.21','192.168.10.22'];
+        $deviceIps = ['192.168.10.20', '192.168.10.21', '192.168.10.22'];
         $batchSize = 1000;
         $affected = [];
 
         foreach ($deviceIps as $ip) {
 
             $zk = new \Rats\Zkteco\Lib\ZKTeco($ip);
-            if (!$zk->connect()) continue;
+            if (!$zk->connect())
+                continue;
 
             $zk->disableDevice();
             $logs = $zk->getAttendance();
@@ -332,11 +337,11 @@ class DeviceLogController extends Controller
 
                 $batch[] = [
                     'employee_id' => $log['id'],
-                    'timestamp'   => Carbon::parse($log['timestamp'])->format('Y-m-d H:i:s'),
-                    'uid'         => $log['uid'],
-                    'type'        => $log['type'],
-                    'created_at'  => now(),
-                    'updated_at'  => now(),
+                    'timestamp' => Carbon::parse($log['timestamp'])->format('Y-m-d H:i:s'),
+                    'uid' => $log['uid'],
+                    'type' => $log['type'],
+                    'created_at' => now(),
+                    'updated_at' => now(),
                 ];
 
                 if (count($batch) >= $batchSize) {
@@ -371,28 +376,42 @@ class DeviceLogController extends Controller
                     ->selectRaw('MIN(timestamp) as in_time, MAX(timestamp) as out_time')
                     ->first();
 
-                if (!$row) continue;
+                if (!$row)
+                    continue;
 
-                $in  = $row->in_time  ? Carbon::parse($row->in_time)->format('H:i:s') : null;
+                $in = $row->in_time ? Carbon::parse($row->in_time)->format('H:i:s') : null;
                 $out = $row->out_time ? Carbon::parse($row->out_time)->format('H:i:s') : null;
 
                 // 🔑 unified expected time
                 $timing = DutyTimeResolver::resolve($empId, $date);
 
+                if ($timing['is_overnight']) {
+                    // Search for out_time on the next day
+                    $nextDayOut = DeviceLog::where('employee_id', $empId)
+                        ->whereDate('timestamp', Carbon::parse($date)->addDay())
+                        ->whereTime('timestamp', '<', '12:00:00')
+                        ->orderBy('timestamp', 'desc')
+                        ->first();
+
+                    if ($nextDayOut) {
+                        $out = Carbon::parse($nextDayOut->timestamp)->format('H:i:s');
+                    }
+                }
+
                 $status = AttendanceStatusResolver::resolve(
                     $in,
                     $out,
                     $timing['start'],
-                    $timing['end']
+                    $timing['end'],
+                    $timing['is_overnight']
                 );
 
                 DailyAttendance::updateOrCreate(
                     ['employee_id' => $empId, 'date' => $date],
                     [
-                        'in_time'  => $in,
+                        'in_time' => $in,
                         'out_time' => $out,
-                        'status'   => $status,
-//                        'remarks'  => $timing['source'], // roster / office / default
+                        'status' => $status,
                     ]
                 );
             }

@@ -29,7 +29,7 @@ class DashboardController extends Controller
 
         // Calendar view
         $month = $request->input('month', now()->month);
-        $year  = $request->input('year', now()->year);
+        $year = $request->input('year', now()->year);
 
         $calendarLogs = DailyAttendance::where('employee_id', $employeeId)
             ->whereMonth('date', $month)
@@ -44,7 +44,7 @@ class DashboardController extends Controller
 
         $holidayDates = array_keys($holidays2025);
 
-//ABSENCE COUNT
+        //ABSENCE COUNT
 // Generate all working days up to TODAY only
         $startOfMonth = Carbon::create($year, $month, 1);
         $endLimit = now()->toDateString(); // today's date
@@ -66,16 +66,16 @@ class DashboardController extends Controller
             $current->addDay();
         }
 
-// Fetch all attendance dates for this month
+        // Fetch all attendance dates for this month
         $attendanceDates = DailyAttendance::where('employee_id', $employeeId)
             ->whereMonth('date', $month)
             ->whereYear('date', $year)
             ->whereDate('date', '<=', $endLimit)
             ->pluck('date')
-            ->map(fn ($d) => Carbon::parse($d)->format('Y-m-d'))
+            ->map(fn($d) => Carbon::parse($d)->format('Y-m-d'))
             ->toArray();
 
-// Calculate absences using date difference
+        // Calculate absences using date difference
         $absenceCount = collect($allDates)
             ->diff($attendanceDates)
             ->count();
@@ -110,14 +110,14 @@ class DashboardController extends Controller
         ];
 
         return Inertia::render('dashboard2', [
-            'employeeId'   => $employeeId,
-            'todayEntry'   => $todayEntry,
-            'logs'         => $logs,
+            'employeeId' => $employeeId,
+            'todayEntry' => $todayEntry,
+            'logs' => $logs,
             'calendarLogs' => $calendarLogs,
             'holidays2025' => $holidays2025,
-            'summary'      => $summary,
-            'month'        => $month,
-            'year'         => $year,
+            'summary' => $summary,
+            'month' => $month,
+            'year' => $year,
         ]);
     }
 
@@ -148,13 +148,13 @@ class DashboardController extends Controller
          |  Calendar View
          * =========================== */
         $month = (int) $request->input('month', now()->month);
-        $year  = (int) $request->input('year', now()->year);
+        $year = (int) $request->input('year', now()->year);
 
         $calendarLogs = DailyAttendance::where('employee_id', $employeeId)
             ->whereMonth('date', $month)
             ->whereYear('date', $year)
             ->get()
-            ->keyBy(fn ($row) => Carbon::parse($row->date)->format('Y-m-d'));
+            ->keyBy(fn($row) => Carbon::parse($row->date)->format('Y-m-d'));
 
         /* ===========================
          |  Holidays
@@ -172,6 +172,14 @@ class DashboardController extends Controller
          * =========================== */
         $startOfMonth = Carbon::create($year, $month, 1);
         $today = Carbon::today();
+
+        // Get user's rosters for this month
+        $rosteredDates = \App\Models\DutyRoster::where('employee_id', $employeeId)
+            ->whereMonth('date', $month)
+            ->whereYear('date', $year)
+            ->pluck('date')
+            ->map(fn($d) => Carbon::parse($d)->format('Y-m-d'))
+            ->toArray();
 
         // Decide correct end date
         if ($year === $today->year && $month === $today->month) {
@@ -191,14 +199,12 @@ class DashboardController extends Controller
         $cursor = $startOfMonth->copy();
 
         while ($cursor->lte($endDate)) {
+            $currentDate = $cursor->format('Y-m-d');
+            $isRostered = in_array($currentDate, $rosteredDates);
 
-            // Skip Friday (5) & Saturday (6)
-            if (!in_array($cursor->dayOfWeek, [5, 6])) {
-
-                // Skip holidays
-                if (!in_array($cursor->format('Y-m-d'), $holidayDates)) {
-                    $workingDays[] = $cursor->format('Y-m-d');
-                }
+            // Include if rostered OR (Not Weekend & Not Holiday)
+            if ($isRostered || (!in_array($cursor->dayOfWeek, [5, 6]) && !in_array($currentDate, $holidayDates))) {
+                $workingDays[] = $currentDate;
             }
 
             $cursor->addDay();
@@ -211,7 +217,7 @@ class DashboardController extends Controller
                 $endDate->toDateString()
             ])
             ->pluck('date')
-            ->map(fn ($d) => Carbon::parse($d)->format('Y-m-d'))
+            ->map(fn($d) => Carbon::parse($d)->format('Y-m-d'))
             ->toArray();
 
         // Final absence count
@@ -224,21 +230,36 @@ class DashboardController extends Controller
          * =========================== */
         SUMMARY:
 
+        $baseSummaryQuery = DailyAttendance::where('employee_id', $employeeId)
+            ->whereMonth('date', $month)
+            ->whereYear('date', $year);
+
+        // We want to count late/early if:
+        // 1. It happened on a rostered date
+        // OR
+        // 2. It happened on a normal working day (Not Weekend & Not Holiday)
+
         $summary = [
-            'late' => DailyAttendance::where('employee_id', $employeeId)
-                ->whereMonth('date', $month)
-                ->whereYear('date', $year)
+            'late' => (clone $baseSummaryQuery)
                 ->where('status', 'like', '%late entry%')
-                ->whereNotIn(DB::raw('DATE(date)'), $holidayDates)
-                ->whereRaw('WEEKDAY(date) NOT IN (4,5)')
+                ->where(function ($q) use ($rosteredDates, $holidayDates) {
+                    $q->whereIn('date', $rosteredDates)
+                        ->orWhere(function ($sq) use ($holidayDates) {
+                            $sq->whereRaw('WEEKDAY(date) NOT IN (4,5)')
+                                ->whereNotIn(DB::raw('DATE(date)'), $holidayDates);
+                        });
+                })
                 ->count(),
 
-            'early' => DailyAttendance::where('employee_id', $employeeId)
-                ->whereMonth('date', $month)
-                ->whereYear('date', $year)
+            'early' => (clone $baseSummaryQuery)
                 ->where('status', 'like', '%early leave%')
-                ->whereNotIn(DB::raw('DATE(date)'), $holidayDates)
-                ->whereRaw('WEEKDAY(date) NOT IN (4,5)')
+                ->where(function ($q) use ($rosteredDates, $holidayDates) {
+                    $q->whereIn('date', $rosteredDates)
+                        ->orWhere(function ($sq) use ($holidayDates) {
+                            $sq->whereRaw('WEEKDAY(date) NOT IN (4,5)')
+                                ->whereNotIn(DB::raw('DATE(date)'), $holidayDates);
+                        });
+                })
                 ->count(),
 
             'absence' => $absenceCount,
@@ -248,14 +269,14 @@ class DashboardController extends Controller
          |  RESPONSE
          * =========================== */
         return Inertia::render('dashboard2', [
-            'employeeId'   => $employeeId,
-            'todayEntry'   => $todayEntry,
-            'logs'         => $logs,
+            'employeeId' => $employeeId,
+            'todayEntry' => $todayEntry,
+            'logs' => $logs,
             'calendarLogs' => $calendarLogs,
             'holidays2025' => $holidays,
-            'summary'      => $summary,
-            'month'        => $month,
-            'year'         => $year,
+            'summary' => $summary,
+            'month' => $month,
+            'year' => $year,
         ]);
     }
 
@@ -263,7 +284,7 @@ class DashboardController extends Controller
     public function employeeCalendar(Request $request, $employeeId)
     {
         $month = $request->input('month', now()->month);
-        $year  = $request->input('year', now()->year);
+        $year = $request->input('year', now()->year);
 
         $calendarLogs = DailyAttendance::where('employee_id', $employeeId)
             ->whereMonth('date', $month)

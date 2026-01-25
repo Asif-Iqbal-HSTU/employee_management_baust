@@ -9,6 +9,9 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use App\Services\DutyTimeResolver;
 use App\Services\AttendanceStatusResolver;
+use Illuminate\Http\Request;
+use App\Models\Holiday;
+use Inertia\Inertia;
 
 class DailyAttendanceController extends Controller
 {
@@ -16,10 +19,10 @@ class DailyAttendanceController extends Controller
     {
         return OfficeTime::where('start_date', '<=', $date)
             ->where('end_date', '>=', $date)
-            ->first() ?? (object)[
-            'in_time'  => '08:00:00',
-            'out_time' => '14:30:00'
-        ];
+            ->first() ?? (object) [
+                'in_time' => '08:00:00',
+                'out_time' => '14:30:00'
+            ];
     }
 
     public function generateDailyAttendance0(): \Illuminate\Http\JsonResponse
@@ -38,26 +41,29 @@ class DailyAttendanceController extends Controller
             // Office rule for the date
             $office = $this->getOfficeTimeForDate($r->day);
 
-            $inThresh  = $office->in_time ?: '08:00:00';
+            $inThresh = $office->in_time ?: '08:00:00';
             $outThresh = $office->out_time ?: '14:30:00';
 
-            $in  = Carbon::parse($r->in_time)->format('H:i:s');
+            $in = Carbon::parse($r->in_time)->format('H:i:s');
             $out = Carbon::parse($r->out_time)->format('H:i:s');
 
             $status = [];
-            if ($in > $inThresh)  $status[] = 'late entry';
-            if ($out < $outThresh) $status[] = 'early leave';
-            if (!$in && !$out) $status[] = 'absent';
+            if ($in > $inThresh)
+                $status[] = 'late entry';
+            if ($out < $outThresh)
+                $status[] = 'early leave';
+            if (!$in && !$out)
+                $status[] = 'absent';
 
             DailyAttendance::updateOrCreate(
                 [
                     'employee_id' => $r->employee_id,
-                    'date'        => $r->day,
+                    'date' => $r->day,
                 ],
                 [
-                    'in_time'  => $in,
+                    'in_time' => $in,
                     'out_time' => $out,
-                    'status'   => implode(', ', $status) ?: 'ok',
+                    'status' => implode(', ', $status) ?: 'ok',
                 ]
             );
         }
@@ -78,28 +84,41 @@ class DailyAttendanceController extends Controller
 
         foreach ($records as $r) {
 
-            $in  = $r->in_time  ? Carbon::parse($r->in_time)->format('H:i:s') : null;
+            $in = $r->in_time ? Carbon::parse($r->in_time)->format('H:i:s') : null;
             $out = $r->out_time ? Carbon::parse($r->out_time)->format('H:i:s') : null;
 
             $timing = DutyTimeResolver::resolve($r->employee_id, $r->day);
+
+            if ($timing['is_overnight']) {
+                // Search for the last punch on the next day before noon
+                $nextDayOut = DeviceLog::where('employee_id', $r->employee_id)
+                    ->whereDate('timestamp', Carbon::parse($r->day)->addDay())
+                    ->whereTime('timestamp', '<', '12:00:00')
+                    ->orderBy('timestamp', 'desc')
+                    ->first();
+
+                if ($nextDayOut) {
+                    $out = Carbon::parse($nextDayOut->timestamp)->format('H:i:s');
+                }
+            }
 
             $status = AttendanceStatusResolver::resolve(
                 $in,
                 $out,
                 $timing['start'],
-                $timing['end']
+                $timing['end'],
+                $timing['is_overnight']
             );
 
             DailyAttendance::updateOrCreate(
                 [
                     'employee_id' => $r->employee_id,
-                    'date'        => $r->day,
+                    'date' => $r->day,
                 ],
                 [
-                    'in_time'  => $in,
+                    'in_time' => $in,
                     'out_time' => $out,
-                    'status'   => $status,
-//                    'remarks'  => $timing['source'],
+                    'status' => $status,
                 ]
             );
         }
@@ -116,7 +135,7 @@ class DailyAttendanceController extends Controller
         $month = $request->query('month', now()->format('Y-m'));
 
         $start = Carbon::parse($month)->startOfMonth();
-        $end   = Carbon::parse($month)->endOfMonth();
+        $end = Carbon::parse($month)->endOfMonth();
 
         // Get first and last entry per day
         $logs = DeviceLog::selectRaw("
@@ -141,12 +160,12 @@ class DailyAttendanceController extends Controller
 
             // Determine status
             $status = 'present';
-            $color  = '#16a34a'; // green
+            $color = '#16a34a'; // green
 
             // Late rule → IN time after 9:15 AM
             if ($log->first_in && Carbon::parse($log->first_in)->gt(Carbon::parse($day . ' 09:15:00'))) {
                 $status = 'late';
-                $color  = '#ca8a04'; // yellow
+                $color = '#ca8a04'; // yellow
             }
 
             $events[] = [

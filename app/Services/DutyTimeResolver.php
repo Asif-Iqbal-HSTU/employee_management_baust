@@ -16,8 +16,9 @@ class DutyTimeResolver
 
         if ($roster) {
             return [
-                'start'  => $roster->start_time,
-                'end'    => $roster->end_time,
+                'start' => $roster->start_time,
+                'end' => $roster->end_time,
+                'is_overnight' => $roster->end_time < $roster->start_time,
                 'source' => 'roster',
             ];
         }
@@ -27,9 +28,13 @@ class DutyTimeResolver
             ->whereDate('end_date', '>=', $date)
             ->first();
 
+        $start = $office?->in_time ?? '08:00:00';
+        $end = $office?->out_time ?? '14:30:00';
+
         return [
-            'start'  => $office?->in_time ?? '08:00:00',
-            'end'    => $office?->out_time ?? '14:30:00',
+            'start' => $start,
+            'end' => $end,
+            'is_overnight' => $end < $start,
             'source' => 'office',
         ];
     }

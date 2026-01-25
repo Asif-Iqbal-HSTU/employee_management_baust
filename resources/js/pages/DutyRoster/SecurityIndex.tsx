@@ -173,23 +173,35 @@ export default function SecurityIndex({ guards, existingRosters, currentWeekStar
                                                 {dates.map((date) => {
                                                     const dateStr = format(date, 'yyyy-MM-dd');
                                                     const today = isToday(date);
+                                                    const startTime = getTimeValue(guard.employee_id, dateStr, 'start_time');
+                                                    const endTime = getTimeValue(guard.employee_id, dateStr, 'end_time');
+                                                    const isOvernightShift = startTime && endTime && (endTime < startTime);
+
                                                     return (
                                                         <Fragment key={guard.employee_id + dateStr}>
                                                             <td className={cn("border p-2 transition-all group-hover:bg-opacity-50", today && "bg-primary/5")}>
                                                                 <input
                                                                     type="time"
                                                                     className="w-full bg-white dark:bg-gray-800/50 border rounded-md focus:ring-2 focus:ring-primary/50 focus:border-primary p-2 text-center font-medium transition-all hover:border-gray-400 text-sm h-10"
-                                                                    value={getTimeValue(guard.employee_id, dateStr, 'start_time')}
+                                                                    value={startTime}
                                                                     onChange={(e) => handleTimeChange(guard.employee_id, dateStr, 'start_time', e.target.value)}
                                                                 />
                                                             </td>
-                                                            <td className={cn("border p-2 transition-all group-hover:bg-opacity-50", today && "bg-primary/5")}>
+                                                            <td className={cn("border p-2 transition-all group-hover:bg-opacity-50 relative", today && "bg-primary/5")}>
                                                                 <input
                                                                     type="time"
-                                                                    className="w-full bg-white dark:bg-gray-800/50 border rounded-md focus:ring-2 focus:ring-primary/50 focus:border-primary p-2 text-center font-medium transition-all hover:border-gray-400 text-sm h-10"
-                                                                    value={getTimeValue(guard.employee_id, dateStr, 'end_time')}
+                                                                    className={cn(
+                                                                        "w-full bg-white dark:bg-gray-800/50 border rounded-md focus:ring-2 focus:ring-primary/50 focus:border-primary p-2 text-center font-medium transition-all hover:border-gray-400 text-sm h-10",
+                                                                        isOvernightShift && "border-amber-400 dark:border-amber-600 ring-1 ring-amber-100 dark:ring-amber-900/30"
+                                                                    )}
+                                                                    value={endTime}
                                                                     onChange={(e) => handleTimeChange(guard.employee_id, dateStr, 'end_time', e.target.value)}
                                                                 />
+                                                                {isOvernightShift && (
+                                                                    <span className="absolute -top-1 -right-1 bg-amber-500 text-white text-[8px] px-1 rounded font-bold shadow-sm z-10 animate-in fade-in zoom-in duration-300">
+                                                                        +1d
+                                                                    </span>
+                                                                )}
                                                             </td>
                                                         </Fragment>
                                                     );
