@@ -90,9 +90,17 @@ class UserAssignmentController extends Controller
             ]);
         }
 
-        return response()->json(['success' => true]);
     }
 
+    public function destroy(Request $request)
+    {
+        $request->validate([
+            'employee_id' => 'required|string|exists:user_assignments,employee_id',
+        ]);
 
+        UserAssignment::where('employee_id', $request->employee_id)->delete();
+
+        return response()->json(['success' => true]);
+    }
 }
 

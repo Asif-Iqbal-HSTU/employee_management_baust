@@ -299,6 +299,7 @@ Route::get('/attendance/report', [\App\Http\Controllers\DeviceLogController::cla
 
 Route::get('/user-assignments', [UserAssignmentController::class, 'index'])->name('user-assignments.index');
 Route::post('/user-assignments', [UserAssignmentController::class, 'store'])->name('user-assignments.store');
+Route::delete('/user-assignments', [UserAssignmentController::class, 'destroy'])->name('user-assignments.destroy');
 
 Route::get('/departments', [AttendanceController::class, 'departments'])->name('departments');
 Route::get('/departmentList', [AttendanceController::class, 'departmentList'])->name('departmentList');
@@ -430,6 +431,11 @@ Route::middleware(['auth'])->group(function () {
         [IssueVoucherController::class, 'approveByHead']
     )->name('voucher.head.approve');
 
+    Route::post(
+        '/dept-head/store/requisitions/{voucher}/deny',
+        [IssueVoucherController::class, 'denyByHead']
+    )->name('voucher.head.deny');
+
     // 💡 NEW ROUTE FOR BULK APPROVAL
     Route::post(
         '/dept-head/store/requisitions/bulk-approve',
@@ -492,6 +498,7 @@ Route::post('/duty-roster', [DutyRosterController::class, 'store'])->name('duty.
 
 Route::get('/duty-roster/security', [DutyRosterController::class, 'securityIndex'])->name('duty.roster.security');
 Route::post('/duty-roster/security', [DutyRosterController::class, 'securityStore'])->name('duty.roster.security.store');
+Route::post('/duty-roster/security/finalize', [DutyRosterController::class, 'securityFinalize'])->name('duty.roster.security.finalize');
 
 
 require __DIR__ . '/settings.php';

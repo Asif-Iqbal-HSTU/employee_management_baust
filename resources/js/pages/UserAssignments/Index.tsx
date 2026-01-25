@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import axios from 'axios';
 
@@ -29,7 +29,22 @@ export default function Index({ users, departments, designations }: any) {
             designation_id: data.designation_id,
         });
 
-        alert('Saved successfully!');
+        alert('Assignment saved successfully!');
+        router.reload();
+    };
+
+    const handleDelete = async (employeeId: string) => {
+        if (!confirm('Are you sure you want to delete this assignment?')) return;
+
+        try {
+            await axios.delete('/user-assignments', {
+                data: { employee_id: employeeId }
+            });
+            alert('Deleted successfully!');
+            router.reload();
+        } catch (error) {
+            alert('Failed to delete assignment.');
+        }
     };
 
     const filteredUsers = users.filter((user: any) => {
@@ -126,13 +141,21 @@ export default function Index({ users, departments, designations }: any) {
                                             ))}
                                         </select>
                                     </td>
-                                    <td className="px-4 py-2">
+                                    <td className="px-4 py-2 space-x-2 flex">
                                         <button
                                             onClick={() => handleSave(user.employee_id)}
                                             className="px-4 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
                                         >
-                                            Save
+                                            {user.assignment ? 'Update' : 'Save'}
                                         </button>
+                                        {user.assignment && (
+                                            <button
+                                                onClick={() => handleDelete(user.employee_id)}
+                                                className="px-4 py-1 bg-red-600 text-white rounded hover:bg-red-700"
+                                            >
+                                                Delete
+                                            </button>
+                                        )}
                                     </td>
                                 </tr>
                             ))}

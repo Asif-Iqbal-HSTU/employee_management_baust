@@ -268,11 +268,19 @@ class DashboardController extends Controller
         /* ===========================
          |  RESPONSE
          * =========================== */
+        $userDesignation = $user->assignment?->designation?->designation_name;
+
         return Inertia::render('dashboard2', [
             'employeeId' => $employeeId,
+            'userDesignation' => $userDesignation,
             'todayEntry' => $todayEntry,
             'logs' => $logs,
             'calendarLogs' => $calendarLogs,
+            'dutyRosters' => \App\Models\DutyRoster::where('employee_id', $employeeId)
+                ->whereMonth('date', $month)
+                ->whereYear('date', $year)
+                ->get()
+                ->keyBy('date'),
             'holidays2025' => $holidays,
             'summary' => $summary,
             'month' => $month,

@@ -23,9 +23,11 @@ interface Props {
     guards: Guard[];
     existingRosters: RosterEntry[];
     currentWeekStart: string;
+    isFinalized: boolean;
+    isAdmin: boolean;
 }
 
-export default function SecurityIndex({ guards, existingRosters, currentWeekStart }: Props) {
+export default function SecurityIndex({ guards, existingRosters, currentWeekStart, isFinalized, isAdmin }: Props) {
     const [weekStart, setWeekStart] = useState(currentWeekStart);
     const [dates, setDates] = useState<Date[]>([]);
 
@@ -112,6 +114,21 @@ export default function SecurityIndex({ guards, existingRosters, currentWeekStar
                                 onChange={(e) => setWeekStart(e.target.value)}
                                 className="w-full sm:w-44 border-2 focus-visible:ring-primary h-10"
                             />
+                            {isAdmin && (
+                                <Button
+                                    variant={isFinalized ? "destructive" : "default"}
+                                    onClick={() => router.post(route('duty.roster.security.finalize'), {
+                                        week_start: weekStart,
+                                        finalize: !isFinalized
+                                    }, {
+                                        preserveScroll: true,
+                                        onSuccess: () => toast.success(isFinalized ? 'Roster un-finalized' : 'Roster finalized')
+                                    })}
+                                    className="h-10 px-6 font-bold"
+                                >
+                                    {isFinalized ? 'Unlock Roster' : 'Finalize Roster'}
+                                </Button>
+                            )}
                         </div>
                     </CardHeader>
                     <CardContent className="p-0 sm:p-6">
@@ -182,20 +199,22 @@ export default function SecurityIndex({ guards, existingRosters, currentWeekStar
                                                             <td className={cn("border p-2 transition-all group-hover:bg-opacity-50", today && "bg-primary/5")}>
                                                                 <input
                                                                     type="time"
-                                                                    className="w-full bg-white dark:bg-gray-800/50 border rounded-md focus:ring-2 focus:ring-primary/50 focus:border-primary p-2 text-center font-medium transition-all hover:border-gray-400 text-sm h-10"
+                                                                    className="w-full bg-white dark:bg-gray-800/50 border rounded-md focus:ring-2 focus:ring-primary/50 focus:border-primary p-2 text-center font-medium transition-all hover:border-gray-400 text-sm h-10 disabled:opacity-50 disabled:cursor-not-allowed"
                                                                     value={startTime}
                                                                     onChange={(e) => handleTimeChange(guard.employee_id, dateStr, 'start_time', e.target.value)}
+                                                                    disabled={!isAdmin && isFinalized}
                                                                 />
                                                             </td>
                                                             <td className={cn("border p-2 transition-all group-hover:bg-opacity-50 relative", today && "bg-primary/5")}>
                                                                 <input
                                                                     type="time"
                                                                     className={cn(
-                                                                        "w-full bg-white dark:bg-gray-800/50 border rounded-md focus:ring-2 focus:ring-primary/50 focus:border-primary p-2 text-center font-medium transition-all hover:border-gray-400 text-sm h-10",
+                                                                        "w-full bg-white dark:bg-gray-800/50 border rounded-md focus:ring-2 focus:ring-primary/50 focus:border-primary p-2 text-center font-medium transition-all hover:border-gray-400 text-sm h-10 disabled:opacity-50 disabled:cursor-not-allowed",
                                                                         isOvernightShift && "border-amber-400 dark:border-amber-600 ring-1 ring-amber-100 dark:ring-amber-900/30"
                                                                     )}
                                                                     value={endTime}
                                                                     onChange={(e) => handleTimeChange(guard.employee_id, dateStr, 'end_time', e.target.value)}
+                                                                    disabled={!isAdmin && isFinalized}
                                                                 />
                                                                 {isOvernightShift && (
                                                                     <span className="absolute -top-1 -right-1 bg-amber-500 text-white text-[8px] px-1 rounded font-bold shadow-sm z-10 animate-in fade-in zoom-in duration-300">
@@ -218,8 +237,8 @@ export default function SecurityIndex({ guards, existingRosters, currentWeekStar
                                 </p>
                                 <Button
                                     type="submit"
-                                    disabled={processing || data.entries.length === 0}
-                                    className="w-full sm:w-auto px-10 h-12 text-base font-bold shadow-lg hover:shadow-primary/20 transition-all rounded-xl"
+                                    disabled={processing || data.entries.length === 0 || (!isAdmin && isFinalized)}
+                                    className="w-full sm:w-auto px-10 h-12 text-base font-bold shadow-lg hover:shadow-primary/20 transition-all rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {processing ? (
                                         <span className="flex items-center gap-2">

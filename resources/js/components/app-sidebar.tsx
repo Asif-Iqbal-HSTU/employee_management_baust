@@ -214,6 +214,15 @@ export function AppSidebar() {
         );
     }
 
+    if (authUser?.employee_id == '20019' || authUser?.employee_id == '25048' || isITAdmin) {
+        mainNavItems.push({
+            title: "Security Person's Duty Roster",
+            href: '/duty-roster/security',
+            category: 'Attendance',
+            icon: Logs,
+        });
+    }
+
     if (!isITAdmin) {
         mainNavItems.push({
             title: 'My Repair Requests',

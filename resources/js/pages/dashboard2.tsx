@@ -16,13 +16,22 @@ interface DailyLog {
     remarks: string | null;
 }
 
+interface DutyRoster {
+    employee_id: string;
+    date: string;
+    start_time: string;
+    end_time: string;
+}
+
 export default function Dashboard() {
-    const { calendarLogs, holidays2025, summary, month, year } = usePage().props as {
+    const { calendarLogs, holidays2025, summary, month, year, dutyRosters, userDesignation } = (usePage().props as any) as {
         calendarLogs: Record<string, DailyLog>;
-        holidays2025: string[];
+        holidays2025: Record<string, string>;
         summary: { late: number; early: number; absence: number };
         month: number;
         year: number;
+        dutyRosters: Record<string, DutyRoster>;
+        userDesignation: string;
     };
 
     console.log(calendarLogs);
@@ -199,9 +208,19 @@ export default function Dashboard() {
                             cellClasses += ' border-red-400 bg-red-50 dark:bg-red-900/40 text-red-700 dark:text-red-400';
                         }
 
+                        const roster = dutyRosters?.[date];
+                        const isSecurity = userDesignation === 'Security Guard';
+
                         return (
                             <div key={date} className={cellClasses}>
-                                <div className="font-bold">{dayjs(date).date()}</div>
+                                <div className="flex justify-between items-start">
+                                    <div className="font-bold">{dayjs(date).date()}</div>
+                                    {roster && isSecurity && (
+                                        <div className="text-[9px] bg-indigo-100 text-indigo-700 px-1 rounded font-bold border border-indigo-200">
+                                            DUTY
+                                        </div>
+                                    )}
+                                </div>
 
                                 {/* Content Rendering */}
                                 {isLeave ? (
@@ -209,18 +228,51 @@ export default function Dashboard() {
                                         {log.status}
                                     </div>
                                 ) : log ? (
-                                    <div className="mt-auto text-xs">
-                                        <div>In: <span className="font-medium">{log.in_time || '-'}</span></div>
-                                        <div>Out: <span className="font-medium">{log.out_time || '-'}</span></div>
+                                    <div className="mt-auto space-y-0.5">
+                                        {roster && isSecurity && (
+                                            <div className="text-[10px] text-indigo-600 font-bold border-b border-indigo-100 pb-0.5 mb-0.5">
+                                                Duty: {roster.start_time.substring(0, 5)} - {roster.end_time.substring(0, 5)}
+                                                {roster.end_time < roster.start_time && <span className="ml-0.5 text-[8px]">+1d</span>}
+                                            </div>
+                                        )}
+                                        <div className="text-[10px] flex justify-between">
+                                            <span className="text-gray-500">In:</span>
+                                            <span className="font-bold">{log.in_time ? log.in_time.substring(0, 5) : '-'}</span>
+                                        </div>
+                                        <div className="text-[10px] flex justify-between">
+                                            <span className="text-gray-500">Out:</span>
+                                            <span className="font-bold">{log.out_time ? log.out_time.substring(0, 5) : '-'}</span>
+                                        </div>
                                     </div>
                                 ) : isHoliday ? (
-                                    <div className="mt-auto text-xs font-semibold">{holidayName}</div>
+                                    <div className="mt-auto space-y-1">
+                                        {roster && isSecurity && (
+                                            <div className="text-[10px] text-indigo-600 font-bold bg-indigo-50 p-0.5 rounded border border-indigo-100">
+                                                Shift: {roster.start_time.substring(0, 5)} - {roster.end_time.substring(0, 5)}
+                                            </div>
+                                        )}
+                                        <div className="text-xs font-semibold">{holidayName}</div>
+                                    </div>
                                 ) : isWeeklyHoliday ? (
-                                    <div className="mt-auto text-xs font-semibold">Weekend</div>
+                                    <div className="mt-auto space-y-1">
+                                        {roster && isSecurity && (
+                                            <div className="text-[10px] text-indigo-600 font-bold bg-indigo-50 p-0.5 rounded border border-indigo-100">
+                                                Shift: {roster.start_time.substring(0, 5)} - {roster.end_time.substring(0, 5)}
+                                            </div>
+                                        )}
+                                        <div className="text-xs font-semibold">Weekend</div>
+                                    </div>
                                 ) : dayjs(date).isBefore(today, 'day') ? (
-                                    <div className="mt-auto text-xs">Absent</div>
+                                    <div className="mt-auto text-xs font-medium text-red-600">Absent</div>
                                 ) : (
-                                    <div className="mt-auto text-xs text-gray-400 dark:text-gray-500">—</div>
+                                    <div className="mt-auto">
+                                        {roster && isSecurity && (
+                                            <div className="text-[10px] text-indigo-600 font-bold bg-indigo-50 p-0.5 rounded border border-indigo-100">
+                                                Shift: {roster.start_time.substring(0, 5)} - {roster.end_time.substring(0, 5)}
+                                            </div>
+                                        )}
+                                        {!roster && <div className="text-xs text-gray-400 dark:text-gray-500">—</div>}
+                                    </div>
                                 )}
                             </div>
                         );

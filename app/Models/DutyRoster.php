@@ -13,5 +13,6 @@ class DutyRoster extends Model
         'end_time',
         'reason',
         'created_by',
+        'is_finalized',
     ];
 }

@@ -66,10 +66,15 @@ class DutyRosterController extends Controller
             ->whereBetween('date', [$weekStart, $weekEnd])
             ->get();
 
+        $isFinalized = $existingRosters->contains('is_finalized', true);
+        $isAdmin = Auth::user()->employee_id == '25052';
+
         return Inertia::render('DutyRoster/SecurityIndex', [
             'guards' => $guards,
             'existingRosters' => $existingRosters,
-            'currentWeekStart' => $weekStart
+            'currentWeekStart' => $weekStart,
+            'isFinalized' => $isFinalized,
+            'isAdmin' => $isAdmin
         ]);
     }
 
@@ -82,6 +87,16 @@ class DutyRosterController extends Controller
             'entries.*.start_time' => 'required',
             'entries.*.end_time' => 'required',
         ]);
+
+        $isAdmin = Auth::user()->employee_id == '25052';
+
+        // Check if any existing entries for these dates are finalized
+        $dates = collect($request->entries)->pluck('date')->unique();
+        $isFinalized = DutyRoster::whereIn('date', $dates)->where('is_finalized', true)->exists();
+
+        if ($isFinalized && !$isAdmin) {
+            return back()->with('error', 'This week is finalized and cannot be edited.');
+        }
 
         DB::transaction(function () use ($request) {
             foreach ($request->entries as $entry) {
@@ -100,5 +115,26 @@ class DutyRosterController extends Controller
         });
 
         return back()->with('success', 'Weekly duty roster saved successfully.');
+    }
+
+    public function securityFinalize(Request $request)
+    {
+        if (Auth::user()->employee_id != '25052') {
+            abort(403);
+        }
+
+        $request->validate([
+            'week_start' => 'required|date',
+            'finalize' => 'required|boolean'
+        ]);
+
+        $weekStart = $request->week_start;
+        $weekEnd = Carbon::parse($weekStart)->addDays(6)->format('Y-m-d');
+
+        DutyRoster::whereBetween('date', [$weekStart, $weekEnd])
+            ->update(['is_finalized' => $request->finalize]);
+
+        $status = $request->finalize ? 'finalized' : 'unfinalized';
+        return back()->with('success', "Weekly duty roster {$status} successfully.");
     }
 }

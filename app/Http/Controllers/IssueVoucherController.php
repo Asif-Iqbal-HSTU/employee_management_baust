@@ -80,13 +80,13 @@ class IssueVoucherController extends Controller
         // 2️⃣ Get vouchers belonging to that department
         $pending = IssueVoucher::where('department_id', $departmentId)
             ->where('allowed_by_head', 'No')
-            ->with('product', 'requisitionedBy')
+            ->with(['product', 'requisitionedBy.assignment.designation'])
             ->orderBy('date', 'desc')
             ->get();
 
         $allowed = IssueVoucher::where('department_id', $departmentId)
-            ->where('allowed_by_head', 'Yes')
-            ->with('product', 'requisitionedBy')
+            ->whereIn('allowed_by_head', ['Yes', 'Denied'])
+            ->with(['product', 'requisitionedBy.assignment.designation'])
             ->orderBy('date', 'desc')
             ->get();
 
@@ -107,6 +107,15 @@ class IssueVoucherController extends Controller
         ]);
 
         return back()->with('success', 'Voucher approved successfully.');
+    }
+
+    public function denyByHead(IssueVoucher $voucher)
+    {
+        $voucher->update([
+            'allowed_by_head' => 'Denied'
+        ]);
+
+        return back()->with('success', 'Voucher denied successfully.');
     }
 
     /**
