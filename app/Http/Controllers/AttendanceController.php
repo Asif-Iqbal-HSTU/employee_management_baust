@@ -293,6 +293,14 @@ class AttendanceController extends Controller
                         ];
                     }
                 } else {
+                    // Check if shift hasn't started yet
+                    if ($date === now()->toDateString()) {
+                        $timing = \App\Services\DutyTimeResolver::resolve($employee->employee_id, $date);
+                        $startTime = \Carbon\Carbon::parse($date . ' ' . $timing['start']);
+                        if (now()->lt($startTime)) {
+                            continue; // Skip, not absent yet
+                        }
+                    }
                     $absentEmployees[] = $employee;
                 }
             }
@@ -1025,13 +1033,32 @@ class AttendanceController extends Controller
                 ->where('date', $date)
                 ->first();
 
+            $status = $attendance?->status ?? null;
+
+            // Logic to prevent "Absent" if shift hasn't started yet
+            if (!$status && $date === \Carbon\Carbon::today()->toDateString()) {
+                $timing = \App\Services\DutyTimeResolver::resolve($emp->employee_id, $date);
+                $startTime = \Carbon\Carbon::parse($date . ' ' . $timing['start']);
+
+                if (now()->lt($startTime)) {
+                    $status = 'upcoming';
+                }
+            }
+
+            $inTime = $attendance?->in_time ?? null;
+            $outTime = $attendance?->out_time ?? null;
+
+            if ($inTime && $outTime && $outTime < $inTime) {
+                $outTime .= ' (+1)';
+            }
+
             $report[] = [
                 'employee_id' => $emp->employee_id,
                 'name' => $emp->name,
                 'designation' => $emp->designation,
-                'in_time' => $attendance?->in_time ?? null,
-                'out_time' => $attendance?->out_time ?? null,
-                'status' => $attendance?->status ?? null,   // 👈 USING DB STATUS
+                'in_time' => $inTime,
+                'out_time' => $outTime,
+                'status' => $status,   // 👈 USING DB STATUS OR LOGIC STATUS
                 'remarks' => $attendance?->remarks ?? null,
             ];
         }

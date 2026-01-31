@@ -25,7 +25,7 @@ class DeptHeadAttendanceController extends Controller
             abort(403, 'You are not a department head');
         }
 
-        $departmentId   = $deptHead->department_id;
+        $departmentId = $deptHead->department_id;
         $departmentName = $deptHead->dept_name;
 
         $date = $request->input('date', Carbon::today()->toDateString());
@@ -46,21 +46,44 @@ class DeptHeadAttendanceController extends Controller
                 ->where('date', $date)
                 ->first();
 
+            $status = $attendance?->status ?? null;
+
+            // Logic to prevent "Absent" if shift hasn't started yet
+            if (!$status && $date === Carbon::today()->toDateString()) {
+                $timing = \App\Services\DutyTimeResolver::resolve($emp->employee_id, $date);
+                $startTime = Carbon::parse($date . ' ' . $timing['start']);
+
+                // If now is before start time (plus maybe a grace period, e.g. 15 mins?), show 'upcoming'
+                // User said: "determine an employee is absent or not after the office time or roster duty start time"
+                // So strictly: if Now < StartTime, they represent "Upcoming" or invalid to be absent.
+                if (now()->lt($startTime)) {
+                    $status = 'upcoming';
+                }
+            }
+
+            $inTime = $attendance?->in_time ?? null;
+            $outTime = $attendance?->out_time ?? null;
+
+            // If out < in, it means overnight shift ending next day
+            if ($inTime && $outTime && $outTime < $inTime) {
+                $outTime .= ' (+1)';
+            }
+
             $report[] = [
                 'employee_id' => $emp->employee_id,
-                'name'        => $emp->name,
+                'name' => $emp->name,
                 'designation' => $emp->designation,
-                'in_time'     => $attendance?->in_time ?? null,
-                'out_time'    => $attendance?->out_time ?? null,
-                'status'      => $attendance?->status ?? null,   // 👈 USING DB STATUS
-                'remarks'     => $attendance?->remarks ?? null,   // 👈 USING DB STATUS
+                'in_time' => $inTime,
+                'out_time' => $outTime,
+                'status' => $status,   // 👈 USING DB STATUS OR LOGIC STATUS
+                'remarks' => $attendance?->remarks ?? null,
             ];
         }
 
         return inertia('DeptHead/Attendance', [
-            'date'       => $date,
+            'date' => $date,
             'department' => ['id' => $departmentId, 'name' => $departmentName],
-            'report'     => $report,
+            'report' => $report,
         ]);
     }
 
@@ -69,9 +92,9 @@ class DeptHeadAttendanceController extends Controller
     {
         $request->validate([
             'employee_id' => 'required|string',
-            'date'        => 'required|date',
-            'status'      => 'required|string',
-            'remarks'     => 'required|nullable|string',
+            'date' => 'required|date',
+            'status' => 'required|string',
+            'remarks' => 'required|nullable|string',
         ]);
 
         $attendance = \App\Models\DailyAttendance::where('employee_id', $request->employee_id)
@@ -82,7 +105,7 @@ class DeptHeadAttendanceController extends Controller
             return back()->with('error', 'Attendance record not found.');
         }
 
-        $attendance->status  = $request->status;
+        $attendance->status = $request->status;
         $attendance->remarks = $request->remarks;
         $attendance->save();
 
@@ -94,9 +117,9 @@ class DeptHeadAttendanceController extends Controller
     {
         $request->validate([
             'employee_id' => 'required|string',
-            'date'        => 'required|date',
-            'status'      => 'required|string',
-            'remarks'     => 'required|nullable|string',
+            'date' => 'required|date',
+            'status' => 'required|string',
+            'remarks' => 'required|nullable|string',
         ]);
 
         $attendance = \App\Models\DailyAttendance::where('employee_id', $request->employee_id)
@@ -153,9 +176,9 @@ class DeptHeadAttendanceController extends Controller
 
         // --- Same logic as dashboard
         $month = (int) $request->input('month', now()->month);
-        $year  = (int) $request->input('year', now()->year);
+        $year = (int) $request->input('year', now()->year);
         $start = Carbon::create($year, $month, 1)->startOfMonth();
-        $end   = Carbon::create($year, $month, 1)->endOfMonth();
+        $end = Carbon::create($year, $month, 1)->endOfMonth();
         $today = Carbon::today();
 
         // per-day punches
@@ -169,7 +192,7 @@ class DeptHeadAttendanceController extends Controller
 
         $byDate = [];
         foreach ($calendarRows as $row) {
-            $in  = $row->first_ts ? Carbon::parse($row->first_ts)->format('H:i') : null;
+            $in = $row->first_ts ? Carbon::parse($row->first_ts)->format('H:i') : null;
             $out = ($row->last_ts && $row->last_ts !== $row->first_ts)
                 ? Carbon::parse($row->last_ts)->format('H:i')
                 : null;
@@ -178,12 +201,33 @@ class DeptHeadAttendanceController extends Controller
 
         // Holidays (reuse your same list)
         $holidayDates = collect([
-            '2025-02-15','2025-02-21','2025-03-26','2025-03-28',
-            '2025-03-29','2025-03-30','2025-03-31','2025-04-01','2025-04-02','2025-04-03',
-            '2025-04-14','2025-05-01','2025-05-11',
-            '2025-06-05','2025-06-06','2025-06-07','2025-06-08','2025-06-09','2025-06-10',
-            '2025-07-06','2025-08-05','2025-08-16','2025-09-05','2025-10-01','2025-10-02',
-            '2025-12-16','2025-12-25',
+            '2025-02-15',
+            '2025-02-21',
+            '2025-03-26',
+            '2025-03-28',
+            '2025-03-29',
+            '2025-03-30',
+            '2025-03-31',
+            '2025-04-01',
+            '2025-04-02',
+            '2025-04-03',
+            '2025-04-14',
+            '2025-05-01',
+            '2025-05-11',
+            '2025-06-05',
+            '2025-06-06',
+            '2025-06-07',
+            '2025-06-08',
+            '2025-06-09',
+            '2025-06-10',
+            '2025-07-06',
+            '2025-08-05',
+            '2025-08-16',
+            '2025-09-05',
+            '2025-10-01',
+            '2025-10-02',
+            '2025-12-16',
+            '2025-12-25',
         ])->map(fn($d) => Carbon::parse($d)->toDateString());
 
         $holidayNames = collect([
@@ -193,50 +237,55 @@ class DeptHeadAttendanceController extends Controller
         // build logs
         $calendarLogs = [];
         for ($d = $start->copy(); $d->lte($end); $d->addDay()) {
-            $dateStr   = $d->toDateString();
-            $hasPunch  = array_key_exists($dateStr, $byDate);
+            $dateStr = $d->toDateString();
+            $hasPunch = array_key_exists($dateStr, $byDate);
             $isHoliday = $holidayDates->contains($dateStr);
             $isWeekend = in_array($d->dayOfWeek, [5, 6]);
-            $isFuture  = $d->gt($today);
+            $isFuture = $d->gt($today);
 
             $label = $isHoliday ? ($holidayNames[$dateStr] ?? 'Holiday') : ($isWeekend ? 'Weekend' : null);
 
             if ($hasPunch) {
                 $status = $isHoliday ? 'holiday' : ($isWeekend ? 'weekend' : 'present');
                 $calendarLogs[] = [
-                    'date'     => $dateStr,
-                    'in_time'  => $byDate[$dateStr]['in_time'],
+                    'date' => $dateStr,
+                    'in_time' => $byDate[$dateStr]['in_time'],
                     'out_time' => $byDate[$dateStr]['out_time'],
-                    'status'   => $status,
-                    'label'    => $label,
+                    'status' => $status,
+                    'label' => $label,
                 ];
             } elseif ($isHoliday) {
-                $calendarLogs[] = ['date'=>$dateStr,'in_time'=>null,'out_time'=>null,'status'=>'holiday','label'=>$label];
+                $calendarLogs[] = ['date' => $dateStr, 'in_time' => null, 'out_time' => null, 'status' => 'holiday', 'label' => $label];
             } elseif ($isWeekend) {
-                $calendarLogs[] = ['date'=>$dateStr,'in_time'=>null,'out_time'=>null,'status'=>'weekend','label'=>$label];
+                $calendarLogs[] = ['date' => $dateStr, 'in_time' => null, 'out_time' => null, 'status' => 'weekend', 'label' => $label];
             } elseif ($isFuture) {
-                $calendarLogs[] = ['date'=>$dateStr,'in_time'=>null,'out_time'=>null,'status'=>'future','label'=>null];
+                $calendarLogs[] = ['date' => $dateStr, 'in_time' => null, 'out_time' => null, 'status' => 'future', 'label' => null];
             } else {
-                $calendarLogs[] = ['date'=>$dateStr,'in_time'=>null,'out_time'=>null,'status'=>'absent','label'=>null];
+                $calendarLogs[] = ['date' => $dateStr, 'in_time' => null, 'out_time' => null, 'status' => 'absent', 'label' => null];
             }
         }
 
         // summary
-        $absence = 0; $late = 0; $early = 0;
+        $absence = 0;
+        $late = 0;
+        $early = 0;
         foreach ($calendarLogs as $row) {
-            if ($row['status'] === 'absent') $absence++;
+            if ($row['status'] === 'absent')
+                $absence++;
             elseif ($row['status'] === 'present') {
-                if ($row['in_time']  && $row['in_time']  > '08:00') $late++;
-                if ($row['out_time'] && $row['out_time'] < '14:30') $early++;
+                if ($row['in_time'] && $row['in_time'] > '08:00')
+                    $late++;
+                if ($row['out_time'] && $row['out_time'] < '14:30')
+                    $early++;
             }
         }
-        $summary = ['absence'=>$absence,'late'=>$late,'early'=>$early];
+        $summary = ['absence' => $absence, 'late' => $late, 'early' => $early];
 
         return response()->json([
             'calendarLogs' => $calendarLogs,
-            'summary'      => $summary,
-            'month'        => $month,
-            'year'         => $year,
+            'summary' => $summary,
+            'month' => $month,
+            'year' => $year,
         ]);
     }
 

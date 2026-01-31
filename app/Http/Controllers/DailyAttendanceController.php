@@ -90,12 +90,74 @@ class DailyAttendanceController extends Controller
             $out = $r->out_time ? Carbon::parse($r->out_time)->format('H:i:s') : null;
 
             // --- Smart In-Time Selection ---
-            // If the first punch is significantly earlier than the rostered start time (e.g., > 4 hours),
-            // it might be the OUT punch of a previous overnight shift.
-            if ($in && $timing['source'] === 'roster') {
-                $startThreshold = Carbon::parse($timing['start'])->subHours(4)->format('H:i:s');
+            // 1. Check if the IN time is actually the OUT time of the PREVIOUS day's overnight shift
+            $prevDay = Carbon::parse($r->day)->subDay()->format('Y-m-d');
+            $prevTiming = DutyTimeResolver::resolve($r->employee_id, $prevDay);
 
-                // If current 'in' is before threshold, look for a better one
+            $thisDayAllPunches = DeviceLog::where('employee_id', $r->employee_id)
+                ->whereDate('timestamp', $r->day)
+                ->orderBy('timestamp', 'asc')
+                ->pluck('timestamp');
+
+            if ($thisDayAllPunches->isNotEmpty()) {
+                $firstPunch = Carbon::parse($thisDayAllPunches->first());
+
+                $isPrevDayExit = false;
+
+                if ($prevTiming['is_overnight']) {
+                    // Logic: If prev day was overnight, and first punch is before 12:00, it belongs to yesterday.
+                    if ($firstPunch->format('H:i:s') < '12:00:00') {
+                        $isPrevDayExit = true;
+                    }
+                }
+
+                if ($isPrevDayExit) {
+                    // The first punch is consumed by yesterday.
+                    // Look for NEXT punch for TODAY's entry.
+                    $todaysPunches = $thisDayAllPunches->filter(function ($p) use ($firstPunch) {
+                        return Carbon::parse($p)->gt($firstPunch);
+                    });
+
+                    if ($todaysPunches->isNotEmpty()) {
+                        $in = Carbon::parse($todaysPunches->first())->format('H:i:s');
+                        // Out time is the last punch of TODAY, provided it's different/later than IN
+                        $actualLast = Carbon::parse($todaysPunches->last());
+                        if ($actualLast->gt(Carbon::parse($todaysPunches->first()))) {
+                            $out = $actualLast->format('H:i:s');
+                        } else {
+                            // If only one punch remains for 'today', out is null or same? 
+                            // Standard logic usually sets out = in if only 1 punch, or null?
+                            // Existing logic was: in=min, out=max. If min==max, in==out.
+                            $out = null;
+                        }
+                    } else {
+                        // No punches left for today.
+                        $in = null;
+                        $out = null;
+                    }
+                } else {
+                    // Standard case: First punch is TODAY's entry
+                    // (We effectively rely on the default MIN/MAX above, but we must respect if we overwrote existing defaults?)
+                    // The default MIN/MAX at top of loop is correct for standard case.
+                    // BUT: we need to handle the "4 hour early" roster check still?
+                    // Let's implement that "4 hour" check here if not overnight prev day.
+
+                    if ($timing['source'] === 'roster') {
+                        $startThreshold = Carbon::parse($timing['start'])->subHours(4)->format('H:i:s');
+                        if ($in && $in < $startThreshold) {
+                            // Too early, ignore?
+                            // Original logic: "look for better in".
+                            // Let's stick closer to original logic for this specific sub-case
+                            // to avoid breaking non-overnight rosters.
+                            // ... (Check original implementation logic below) ...
+                        }
+                    }
+                }
+            }
+
+            // Refined "4 Hour Early" check (from original code, kept for safety)
+            if ($in && $timing['source'] === 'roster' && !$prevTiming['is_overnight']) {
+                $startThreshold = Carbon::parse($timing['start'])->subHours(4)->format('H:i:s');
                 if ($in < $startThreshold) {
                     $betterIn = DeviceLog::where('employee_id', $r->employee_id)
                         ->whereDate('timestamp', $r->day)
@@ -106,7 +168,6 @@ class DailyAttendanceController extends Controller
                     if ($betterIn) {
                         $in = Carbon::parse($betterIn->timestamp)->format('H:i:s');
                     } else {
-                        // If no punch found in the window, it might be late or absent for THIS shift
                         $in = null;
                     }
                 }
@@ -172,7 +233,7 @@ class DailyAttendanceController extends Controller
             ->get();
 
         // Get holidays for the month
-        $holidays = Holiday::whereBetween('date', [$start, $end])->pluck('date')->map(fn($d) => $d->format('Y-m-d'));
+        $holidays = Holiday::whereBetween('date', [$start, $end])->pluck('date')->map(fn($d) => $d->format('Y-m-d'))->toArray();
 
         // Prepare events for FullCalendar
         $events = [];
