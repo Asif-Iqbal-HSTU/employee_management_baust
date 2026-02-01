@@ -209,9 +209,16 @@ export function AppSidebar() {
                 category: 'IT Repair Cell',
                 icon: FileSliders,
             },
-
-            { title: 'Duty Roster', href: '/duty-roster', category: 'Attendance', icon: Logs },
         );
+    }
+
+    if (authUser?.headed_department || isITAdmin) {
+        mainNavItems.push({
+            title: 'Duty Roster',
+            href: '/duty-roster',
+            category: 'Attendance',
+            icon: Logs,
+        });
     }
 
     if (authUser?.employee_id == '20019' || authUser?.employee_id == '25048' || isITAdmin) {

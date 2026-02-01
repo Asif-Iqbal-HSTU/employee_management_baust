@@ -13,9 +13,51 @@ use Illuminate\Support\Facades\DB;
 
 class DutyRosterController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        return Inertia::render('DutyRoster/Index');
+        $user = Auth::user();
+        $isAdmin = $user->employee_id === '25052';
+        $deptHead = DB::table('dept_heads')->where('employee_id', $user->employee_id)->first();
+
+        if (!$isAdmin && !$deptHead) {
+            abort(403, 'Unauthorized access.');
+        }
+
+        $query = User::query()->with('assignment.department');
+
+        if (!$isAdmin) {
+            $query->whereHas('assignment', function ($q) use ($deptHead) {
+                $q->where('department_id', $deptHead->department_id);
+            });
+        }
+
+        $employees = $query->get()->map(function ($emp) {
+            return [
+                'employee_id' => $emp->employee_id,
+                'name' => $emp->name,
+                'department' => $emp->assignment->department->name ?? 'N/A',
+            ];
+        });
+
+        $rosters = DutyRoster::with([
+            'user' => function ($q) {
+                $q->select('employee_id', 'name');
+            }
+        ])
+            ->when(!$isAdmin, function ($q) use ($deptHead) {
+                $q->whereHas('user.assignment', function ($sq) use ($deptHead) {
+                    $sq->where('department_id', $deptHead->department_id);
+                });
+            })
+            ->orderBy('date', 'desc')
+            ->orderBy('start_time', 'asc')
+            ->paginate(20);
+
+        return Inertia::render('DutyRoster/Index', [
+            'employees' => $employees,
+            'rosters' => $rosters,
+            'isAdmin' => $isAdmin,
+        ]);
     }
 
     public function store(Request $request)
