@@ -235,6 +235,17 @@ class DailyAttendanceController extends Controller
         // Get holidays for the month
         $holidays = Holiday::whereBetween('date', [$start, $end])->pluck('date')->map(fn($d) => $d->format('Y-m-d'))->toArray();
 
+        // Get Leaves for the month
+        $leaves = \App\Models\Leave::where('employee_id', $employeeId)
+            ->where(function ($q) {
+                $q->where('status', 'Sent to Registrar')
+                    ->orWhere('status', 'Approved by Registrar')
+                    ->orWhere('status', 'Approved by VC');
+            })
+            ->whereDate('start_date', '<=', $end)
+            ->whereDate('end_date', '>=', $start)
+            ->get();
+
         // Prepare events for FullCalendar
         $events = [];
 
@@ -274,12 +285,51 @@ class DailyAttendanceController extends Controller
             ];
         }
 
-        // Mark absent days (no logs, not holiday)
+        // Add leaves
+        $leaveDates = [];
+        foreach ($leaves as $leave) {
+            $leaveStart = Carbon::parse($leave->start_date);
+            $leaveEnd = Carbon::parse($leave->end_date);
+
+            // Constrain to current month view to avoid huge loops if leave is long
+            $loopStart = $leaveStart->copy()->max($start);
+            $loopEnd = $leaveEnd->copy()->min($end);
+
+            while ($loopStart->lte($loopEnd)) {
+                $d = $loopStart->format('Y-m-d');
+                $leaveDates[] = $d;
+
+                // Only add event if no log exists (Log overrides leave visually if they came in?)
+                // Usually stick to "Leave" if on leave. 
+                // But if they have logs, the Log event is already added. 
+                // FullCalendar handles multiple events on same day fine.
+                // But we should probably NOT show "Absent" if they have leave.
+
+                // Let's add the Leave event.
+                $events[] = [
+                    'title' => $leave->type, // e.g., Casual Leave
+                    'start' => $d,
+                    'color' => '#8b5cf6', // purple or whatever
+                    'extendedProps' => [
+                        'status' => 'leave',
+                        'type' => $leave->type
+                    ]
+                ];
+
+                $loopStart->addDay();
+            }
+        }
+
+        // Mark absent days (no logs, not holiday, not leave)
         $period = Carbon::parse($start)->daysUntil($end);
 
         foreach ($period as $date) {
             $d = $date->format('Y-m-d');
-            if (!in_array($d, $holidays) && !$logs->contains('day', $d)) {
+            if (
+                !in_array($d, $holidays) &&
+                !$logs->contains('day', $d) &&
+                !in_array($d, $leaveDates)
+            ) {
                 $events[] = [
                     'title' => "Absent",
                     'start' => $d,

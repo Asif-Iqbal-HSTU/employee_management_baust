@@ -225,7 +225,12 @@ export default function Dashboard() {
                                 {/* Content Rendering */}
                                 {isLeave ? (
                                     <div className="mt-auto text-xs font-semibold">
-                                        {log.status}
+                                        <div>{log.status}</div>
+                                        {((log as any).in_time || (log as any).out_time) && (
+                                            <div className="text-[10px] text-gray-600 dark:text-gray-300 border-t border-purple-300 mt-1 pt-0.5">
+                                                {((log as any).in_time)?.substring(0, 5)} - {((log as any).out_time)?.substring(0, 5)}
+                                            </div>
+                                        )}
                                     </div>
                                 ) : log ? (
                                     <div className="mt-auto space-y-0.5">

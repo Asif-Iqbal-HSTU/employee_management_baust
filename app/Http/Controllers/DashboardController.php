@@ -168,6 +168,46 @@ class DashboardController extends Controller
         $holidayDates = array_keys($holidays);
 
         /* ===========================
+         |  Leaves (Fetch & Merge)
+         * =========================== */
+        $leaves = \App\Models\Leave::where('employee_id', $employeeId)
+            ->where(function ($q) {
+                $q->where('status', 'Sent to Registrar')
+                    ->orWhere('status', 'Approved by Registrar')
+                    ->orWhere('status', 'Approved by VC');
+            })
+            ->whereDate('start_date', '<=', Carbon::create($year, $month)->endOfMonth())
+            ->whereDate('end_date', '>=', Carbon::create($year, $month)->startOfMonth())
+            ->get();
+
+        $leaveDates = [];
+        foreach ($leaves as $leave) {
+            $period = \Carbon\CarbonPeriod::create($leave->start_date, $leave->end_date);
+            foreach ($period as $date) {
+                $d = $date->format('Y-m-d');
+                $leaveDates[] = $d;
+
+                if ($calendarLogs->has($d)) {
+                    // Log exists (User Present + On Leave)
+                    // We force status to "On Leave" so frontend renders it as leave
+                    $log = $calendarLogs->get($d);
+                    $log->status = 'On Leave (' . $leave->type . ')';
+                } else {
+                    // Add to calendarLogs if missing
+                    $calendarLogs->put($d, (object) [
+                        'id' => null,
+                        'employee_id' => $employeeId,
+                        'date' => $d,
+                        'in_time' => null,
+                        'out_time' => null,
+                        'status' => 'On Leave (' . $leave->type . ')',
+                        'remarks' => $leave->status,
+                    ]);
+                }
+            }
+        }
+
+        /* ===========================
          |  ABSENCE CALCULATION (FIXED)
          * =========================== */
         $startOfMonth = Carbon::create($year, $month, 1);
@@ -220,9 +260,10 @@ class DashboardController extends Controller
             ->map(fn($d) => Carbon::parse($d)->format('Y-m-d'))
             ->toArray();
 
-        // Final absence count
+        // Final absence count (Working Days - Attendance - Leaves)
         $absenceCount = collect($workingDays)
             ->diff($attendanceDays)
+            ->diff($leaveDates)
             ->count();
 
         /* ===========================
