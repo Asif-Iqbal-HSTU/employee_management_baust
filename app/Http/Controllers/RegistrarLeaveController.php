@@ -68,4 +68,48 @@ class RegistrarLeaveController extends Controller
 
         return back()->with('success', 'Leave Rejected');
     }
+
+    // Bulk Update
+    public function bulkUpdate(Request $request)
+    {
+        $request->validate([
+            'ids' => 'required|array',
+            'status' => 'required|in:Approved by Registrar,Rejected by Registrar'
+        ]);
+
+        $leaves = Leave::whereIn('id', $request->ids)
+            ->where('status', 'Sent to Registrar')
+            ->get();
+
+        foreach ($leaves as $leave) {
+            $leave->update([
+                'status' => $request->status
+            ]);
+
+            if ($request->status === 'Approved by Registrar') {
+                // Insert into DailyAttendance table for each date
+                $start = Carbon::parse($leave->start_date);
+                $end = Carbon::parse($leave->end_date);
+
+                while ($start->lte($end)) {
+                    DailyAttendance::updateOrCreate(
+                        [
+                            'employee_id' => $leave->employee_id,
+                            'date' => $start->toDateString()
+                        ],
+                        [
+                            'in_time' => null,
+                            'out_time' => null,
+                            'status' => 'On Leave',
+                            'remarks' => 'Leave approved by Registrar'
+                        ]
+                    );
+
+                    $start->addDay();
+                }
+            }
+        }
+
+        return back()->with('success', 'Leaves updated successfully');
+    }
 }

@@ -14,14 +14,33 @@ use Carbon\Carbon;
 class VCLeaveController extends Controller
 {
     // Senior officers whose leaves need VC approval
-    private const SENIOR_OFFICER_IDS = ['25040', '15012', '21023']; // Registrar, Treasurer, Exam Controller
+    // Senior officers whose leaves need VC approval - Dynamically checked by designation now
+    // private const SENIOR_OFFICER_IDS = ['25040', '15012', '21023']; 
 
     /**
      * Check if an employee is a senior officer requiring VC approval
      */
     public static function isSeniorOfficer($employee_id): bool
     {
-        return in_array((string) $employee_id, self::SENIOR_OFFICER_IDS);
+        $user = User::with('assignment.designation')->where('employee_id', $employee_id)->first();
+
+        if (!$user || !$user->assignment || !$user->assignment->designation) {
+            return false;
+        }
+
+        $designation = $user->assignment->designation->designation_name;
+
+        // Based on user request: Registrar, Additional Registrar, Controller of Examinations, Treasurer
+        // Note: 'Controller of Examinations' is likely 'Exam Controller' in DB
+        $seniorDesignations = [
+            'Registrar',
+            'Additional Registrar',
+            'Exam Controller', 
+            'Controller of Examinations',
+            'Treasurer'
+        ];
+
+        return in_array($designation, $seniorDesignations);
     }
 
     /**
@@ -61,7 +80,7 @@ class VCLeaveController extends Controller
             )
             ->get()
             ->map(function ($leave) {
-                $leave->requested_days = Carbon::parse($leave->start_date)->diffInDays(Carbon::parse($leave->end_date)) + 1;
+                $leave->requested_days = \App\Services\LeaveService::calculateLeaveDays($leave->start_date, $leave->end_date);
                 return $leave;
             });
 

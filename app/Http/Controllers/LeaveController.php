@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 use Illuminate\Support\Facades\DB;
+use App\Services\LeaveService;
 
 class LeaveController extends Controller
 {
@@ -39,8 +40,7 @@ class LeaveController extends Controller
             ->whereIn('status', ['Sent to Registrar', 'Approved by Registrar', 'Approved by VC', 'Cancellation Requested'])
             ->sum(
                 fn($leave) =>
-                Carbon::parse($leave->start_date)
-                    ->diffInDays(Carbon::parse($leave->end_date)) + 1
+                LeaveService::calculateLeaveDays($leave->start_date, $leave->end_date)
             );
 
         // Used medical leave days
@@ -49,8 +49,7 @@ class LeaveController extends Controller
             ->whereIn('status', ['Sent to Registrar', 'Approved by Registrar', 'Approved by VC', 'Cancellation Requested'])
             ->sum(
                 fn($leave) =>
-                Carbon::parse($leave->start_date)
-                    ->diffInDays(Carbon::parse($leave->end_date)) + 1
+                LeaveService::calculateLeaveDays($leave->start_date, $leave->end_date)
             );
         // Used medical leave days
         $usedEarned = $leaves
@@ -58,8 +57,7 @@ class LeaveController extends Controller
             ->whereIn('status', ['Sent to Registrar', 'Approved by Registrar', 'Approved by VC', 'Cancellation Requested'])
             ->sum(
                 fn($leave) =>
-                Carbon::parse($leave->start_date)
-                    ->diffInDays(Carbon::parse($leave->end_date)) + 1
+                LeaveService::calculateLeaveDays($leave->start_date, $leave->end_date)
             );
 
         // Employees from user's own department (for default selection)
@@ -86,6 +84,9 @@ class LeaveController extends Controller
         // User's current department ID
         $userDeptId = $user->assignment?->department_id;
 
+        // Holidays for frontend calculation
+        $holidays = \App\Models\Holiday::pluck('date')->toArray();
+
         return inertia('Leave/index', [
             'leaves' => $leaves,
             'remainingCasual' => max(0, $defaultCasual - $usedCasual),
@@ -97,6 +98,7 @@ class LeaveController extends Controller
             'employees' => $employees,
             'departments' => $departments,
             'userDeptId' => $userDeptId,
+            'holidays' => $holidays,
         ]);
     }
 
@@ -160,18 +162,21 @@ class LeaveController extends Controller
             // Calculate used days for each type
             $usedCasual = $employeeLeaves
                 ->where('type', 'Casual Leave')
-                ->sum(fn($l) => Carbon::parse($l->start_date)->diffInDays(Carbon::parse($l->end_date)) + 1);
+                ->where('type', 'Casual Leave')
+                ->sum(fn($l) => LeaveService::calculateLeaveDays($l->start_date, $l->end_date));
 
             $usedMedical = $employeeLeaves
                 ->where('type', 'Medical Leave')
-                ->sum(fn($l) => Carbon::parse($l->start_date)->diffInDays(Carbon::parse($l->end_date)) + 1);
+                ->where('type', 'Medical Leave')
+                ->sum(fn($l) => LeaveService::calculateLeaveDays($l->start_date, $l->end_date));
 
             $usedEarned = $employeeLeaves
                 ->where('type', 'Earned Leave')
-                ->sum(fn($l) => Carbon::parse($l->start_date)->diffInDays(Carbon::parse($l->end_date)) + 1);
+                ->where('type', 'Earned Leave')
+                ->sum(fn($l) => LeaveService::calculateLeaveDays($l->start_date, $l->end_date));
 
             // Calculate requested days for this leave
-            $requestedDays = Carbon::parse($leave->start_date)->diffInDays(Carbon::parse($leave->end_date)) + 1;
+            $requestedDays = LeaveService::calculateLeaveDays($leave->start_date, $leave->end_date);
 
             // Attach balance info
             $leave->requested_days = $requestedDays;
@@ -242,8 +247,7 @@ class LeaveController extends Controller
                     'start_date' => $leave->start_date,
                     'end_date' => $leave->end_date,
                     'days' =>
-                        \Carbon\Carbon::parse($leave->start_date)
-                            ->diffInDays(\Carbon\Carbon::parse($leave->end_date)) + 1,
+                        LeaveService::calculateLeaveDays($leave->start_date, $leave->end_date),
                     'replace' => $replacementName,
                     'status' => $leave->status,
                 ];
@@ -267,6 +271,7 @@ class LeaveController extends Controller
         $end = Carbon::parse($leave->end_date);
 
         while ($start->lte($end)) {
+            // (Previous sandwich rule override) Now we create attendance for ALL days in the span.
             DailyAttendance::updateOrCreate(
                 [
                     'employee_id' => $leave->employee_id,
@@ -318,10 +323,18 @@ class LeaveController extends Controller
 
         $user = Auth::user();
 
+        // --- SANDWICH RULE CHECK ---
+        // Check if this request bridges with existing leaves over holidays/weekends
+        $bridgedInfo = LeaveService::getBridgedDates($user->employee_id, $request->startdate, $request->enddate);
+        
+        $finalStartDate = $bridgedInfo['start'];
+        $finalEndDate = $bridgedInfo['end'];
+        $wasBridged = $bridgedInfo['bridged'];
+
         // Check if user is a senior officer (requires VC approval)
         $isSeniorOfficer = VCLeaveController::isSeniorOfficer($user->employee_id);
 
-        // 🚫 Check overlapping leave dates
+        // 🚫 Check overlapping leave dates (using extended dates)
         $conflict = Leave::where('employee_id', $user->employee_id)
             ->whereIn('status', [
                 'Requested to Head',
@@ -330,34 +343,33 @@ class LeaveController extends Controller
                 'Approved by Registrar',
                 'Approved by VC',
             ])
-            ->where(function ($q) use ($request) {
-                $q->whereDate('start_date', '<=', $request->enddate)
-                    ->whereDate('end_date', '>=', $request->startdate);
+            ->where(function ($q) use ($finalStartDate, $finalEndDate) {
+                $q->whereDate('start_date', '<=', $finalEndDate)
+                    ->whereDate('end_date', '>=', $finalStartDate);
             })
             ->exists();
 
         if ($conflict) {
             return back()->withErrors([
-                'date_conflict' => 'You already have a leave request or approved leave within the selected date range.',
+                'date_conflict' => 'You already have a leave request or approved leave within the selected (or bridged) date range.',
             ]);
         }
 
 
         $requestedDays =
-            Carbon::parse($request->startdate)
-                ->diffInDays(Carbon::parse($request->enddate)) + 1;
+            LeaveService::calculateLeaveDays($finalStartDate, $finalEndDate);
 
         $defaultCasual = 20;
         $defaultMedical = 15;
 
+        // Calculate used balance (Standard calculation now)
         $used = Leave::where('employee_id', $user->employee_id)
             ->where('type', $request->leave_type)
             ->whereIn('status', ['Sent to Registrar', 'Approved by Registrar', 'Approved by VC'])
             ->get()
             ->sum(
                 fn($leave) =>
-                Carbon::parse($leave->start_date)
-                    ->diffInDays(Carbon::parse($leave->end_date)) + 1
+                LeaveService::calculateLeaveDays($leave->start_date, $leave->end_date)
             );
 
         $remaining = match ($request->leave_type) {
@@ -369,7 +381,7 @@ class LeaveController extends Controller
 
         if ($request->leave_type !== 'Duty Leave' && $requestedDays > $remaining) {
             return back()->withErrors([
-                'balance' => "Requested {$requestedDays} days exceeds remaining {$remaining} days.",
+                'balance' => "Requested {$requestedDays} days (including bridged holidays/weekends) exceeds remaining {$remaining} days.",
             ]);
         }
 
@@ -387,8 +399,8 @@ class LeaveController extends Controller
         // Create the leave
         $leave = Leave::create([
             'employee_id' => $user->employee_id,
-            'start_date' => $request->startdate,
-            'end_date' => $request->enddate,
+            'start_date' => $finalStartDate,
+            'end_date' => $finalEndDate,
             'type' => $request->leave_type,
             'reason' => $request->reason,
             'replace' => $request->replace,
@@ -397,8 +409,16 @@ class LeaveController extends Controller
         ]);
 
         $successMessage = $isSeniorOfficer
-            ? 'Leave Requested Successfully. Awaiting Vice Chancellor approval.'
+            ? 'Leave Requested Successfully.'
             : 'Leave Requested Successfully';
+        
+        if ($wasBridged) {
+            $successMessage .= ' (Note: Dates were extended to include intervening holidays/weekends per Sandwich Rule)';
+        }
+
+        if ($isSeniorOfficer) {
+            $successMessage .= ' Awaiting Vice Chancellor approval.';
+        }
 
         return redirect()->route('leave.index')->with('success', $successMessage);
     }

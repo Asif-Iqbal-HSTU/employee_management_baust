@@ -366,6 +366,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::post('/registrar/leave-requests/{id}/deny', [RegistrarLeaveController::class, 'deny'])
         ->name('registrar.leave.deny');
+
+    Route::post('/registrar/leave-requests/bulk-update', [RegistrarLeaveController::class, 'bulkUpdate'])
+        ->name('registrar.leave.bulk-update');
 });
 
 // VC Leave Approval Panel (for senior officers like Registrar, Treasurer, Exam Controller)
@@ -387,11 +390,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/registrar/voucher-requests', [RegistrarVoucherController::class, 'index'])
         ->name('registrar.voucher.index');
 
+    Route::get('/registrar/voucher-requests/finalized', [RegistrarVoucherController::class, 'finalized'])
+        ->name('registrar.voucher.finalized');
+
     Route::post('/registrar/voucher-requests/{id}/approve', [RegistrarVoucherController::class, 'approve'])
         ->name('registrar.voucher.approve');
 
     Route::post('/registrar/voucher-requests/{id}/deny', [RegistrarVoucherController::class, 'deny'])
         ->name('registrar.voucher.deny');
+
+    Route::post('/registrar/voucher-requests/bulk-update', [RegistrarVoucherController::class, 'bulkUpdate'])
+        ->name('registrar.voucher.bulk-update');
 });
 
 
@@ -500,6 +509,12 @@ Route::get('/duty-roster/security', [DutyRosterController::class, 'securityIndex
 Route::post('/duty-roster/security', [DutyRosterController::class, 'securityStore'])->name('duty.roster.security.store');
 Route::post('/duty-roster/security/finalize', [DutyRosterController::class, 'securityFinalize'])->name('duty.roster.security.finalize');
 
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/manual-attendance', [\App\Http\Controllers\ManualAttendanceController::class, 'index'])->name('attendance.manual.index');
+    Route::get('/manual-attendance/search', [\App\Http\Controllers\ManualAttendanceController::class, 'search'])->name('attendance.manual.search');
+    Route::post('/manual-attendance/store', [\App\Http\Controllers\ManualAttendanceController::class, 'store'])->name('attendance.manual.store');
+});
 
 require __DIR__ . '/settings.php';
 require __DIR__ . '/auth.php';

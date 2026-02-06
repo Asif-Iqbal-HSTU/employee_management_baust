@@ -24,6 +24,18 @@ class RegistrarVoucherController extends Controller
         ]);
     }
 
+    public function finalized()
+    {
+        $vouchers = IssueVoucher::with(['requisitionedBy.assignment.designation', 'department', 'product'])
+            ->whereIn('allowed_by_registrar', ['Yes', 'Rejected'])
+            ->orderBy('updated_at', 'desc')
+            ->paginate(20);
+
+        return Inertia::render('Store/FinalizedVouchers', [
+            'vouchers' => $vouchers
+        ]);
+    }
+
 
     // Registrar approves
     public function approve(Request $request, $id)
@@ -53,5 +65,21 @@ class RegistrarVoucherController extends Controller
         ]);
 
         return back()->with('success', 'Voucher Rejected');
+    }
+
+    // Bulk Update
+    public function bulkUpdate(Request $request)
+    {
+        $request->validate([
+            'ids' => 'required|array',
+            'status' => 'required|in:Yes,Rejected'
+        ]);
+
+        IssueVoucher::whereIn('id', $request->ids)
+            ->where('allowed_by_head', 'Yes')
+            ->where('allowed_by_registrar', 'No')
+            ->update(['allowed_by_registrar' => $request->status]);
+
+        return back()->with('success', 'Vouchers updated successfully');
     }
 }

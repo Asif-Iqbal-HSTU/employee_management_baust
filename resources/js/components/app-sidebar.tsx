@@ -83,6 +83,12 @@ export function AppSidebar() {
         );
     }
 
+    if (authUser?.employee_id == 25052 || authUser?.employee_id == 25048) {
+        mainNavItems.push(
+            { title: 'Manual Attendance', href: '/manual-attendance', category: 'Attendance', icon: CalendarClock },
+        );
+    }
+
     if (authUser?.employee_id == 25040) {
         mainNavItems.push(
             { title: 'All Departments', href: '/departments', category: 'Attendance', icon: Logs },

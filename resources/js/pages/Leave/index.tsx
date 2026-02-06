@@ -7,19 +7,38 @@ import { useEffect, useState, useMemo } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Leave Management', href: '/leave-management' }];
 
-export default function Leave({ leaves, remainingCasual, remainingMedical, remainingEarned, employees, departments, userDeptId }: any) {
+export default function Leave({ leaves, remainingCasual, remainingMedical, remainingEarned, employees, departments, userDeptId, holidays = [] }: any) {
     const [showModal, setShowModal] = useState(false);
     const [balanceError, setBalanceError] = useState<string | null>(null);
     const [dateConflictError, setDateConflictError] = useState<string | null>(null);
     const [selectedDeptId, setSelectedDeptId] = useState<number | string>(userDeptId || 'all');
 
+    const { data, setData, post, processing, errors, reset } = useForm({
+        leave_type: 'Casual Leave',
+        startdate: '',
+        enddate: '',
+        reason: '',
+        replace: '',
+        medical_file: null as File | null,
+    });
+
     const calculateDays = () => {
-        if (!data.startdate || !data.enddate) return 0;
+        if (!data.startdate || !data.enddate) return { total: 0, billable: 0 };
         const start = new Date(data.startdate);
         const end = new Date(data.enddate);
-        const diff = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-        return diff > 0 ? diff : 0;
+
+        let total = 0;
+        let current = new Date(start);
+
+        if (start > end) return { total: 0, billable: 0 };
+
+        const diffTime = Math.abs(end.getTime() - start.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+        return { total: diffDays, billable: diffDays };
     };
+
+    const daysInfo = useMemo(() => calculateDays(), [data.startdate, data.enddate]);
 
     const cancelLeave = (id: number, status: string) => {
         if (confirm('Are you sure you want to cancel this leave request?')) {
@@ -30,15 +49,6 @@ export default function Leave({ leaves, remainingCasual, remainingMedical, remai
             }
         }
     };
-
-    const { data, setData, post, processing, errors, reset } = useForm({
-        leave_type: 'Casual Leave',
-        startdate: '',
-        enddate: '',
-        reason: '',
-        replace: '',
-        medical_file: null as File | null,
-    });
 
     // Filter employees based on selected department
     const filteredEmployees = useMemo(() => {
@@ -61,7 +71,7 @@ export default function Leave({ leaves, remainingCasual, remainingMedical, remai
     }, [showModal, userDeptId]);
 
     const submitLeave = () => {
-        const requestedDays = calculateDays();
+        const { billable: requestedDays } = calculateDays();
         let remaining = 0;
 
         if (data.leave_type === 'Casual Leave') {
@@ -350,11 +360,18 @@ export default function Leave({ leaves, remainingCasual, remainingMedical, remai
                             </div>
 
                             {/* Days Preview */}
-                            {data.startdate && data.enddate && calculateDays() > 0 && (
+                            {data.startdate && data.enddate && daysInfo.total > 0 && (
                                 <div className="mb-5 rounded-xl border border-indigo-200 bg-indigo-50 p-3">
-                                    <p className="text-center text-sm font-medium text-indigo-700">
-                                        📅 Duration: <span className="text-lg font-bold">{calculateDays()}</span> day{calculateDays() > 1 ? 's' : ''}
-                                    </p>
+                                    <div className="text-center">
+                                        <p className="text-sm font-medium text-indigo-700">
+                                            📅 Duration: <span className="text-lg font-bold">{daysInfo.billable}</span> day{daysInfo.billable !== 1 ? 's' : ''}
+                                        </p>
+                                        {(daysInfo.total !== daysInfo.billable) && (
+                                            <p className="text-xs text-indigo-500 mt-1">
+                                                (Total span: {daysInfo.total} days. Weekends & Holidays excluded)
+                                            </p>
+                                        )}
+                                    </div>
                                 </div>
                             )}
 
