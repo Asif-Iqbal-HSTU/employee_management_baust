@@ -295,6 +295,7 @@ Route::post('/attendance/sync', [AttendanceController::class, 'syncDeviceLogs'])
 Route::post('/users/sync', [AttendanceController::class, 'syncUsersFromDevices'])->name('users.sync');
 
 Route::post('/logs/sync', [\App\Http\Controllers\DeviceLogController::class, 'syncRawLogs'])->name('logs.sync');
+Route::post('/logs/recalculate', [\App\Http\Controllers\DeviceLogController::class, 'recalculate'])->name('logs.recalculate');
 Route::get('/attendance/report', [\App\Http\Controllers\DeviceLogController::class, 'generateReport'])->name('attendance.report');
 
 Route::get('/user-assignments', [UserAssignmentController::class, 'index'])->name('user-assignments.index');

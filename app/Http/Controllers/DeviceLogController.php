@@ -461,4 +461,61 @@ class DeviceLogController extends Controller
         ]);
     }
 
+    public function recalculate(Request $request)
+    {
+        $date = $request->input('date', today()->toDateString());
+        
+        $employeeIds = DeviceLog::whereDate('timestamp', $date)
+            ->distinct()
+            ->pluck('employee_id');
+
+        if ($employeeIds->isEmpty()) {
+            return back()->with('error', "No logs found for $date to recalculate.");
+        }
+
+        foreach ($employeeIds as $empId) {
+            $row = DeviceLog::where('employee_id', $empId)
+                ->whereDate('timestamp', $date)
+                ->selectRaw('MIN(timestamp) as in_time, MAX(timestamp) as out_time')
+                ->first();
+
+            if (!$row || !$row->in_time) continue;
+
+            $in = $row->in_time ? Carbon::parse($row->in_time)->format('H:i:s') : null;
+            $out = $row->out_time ? Carbon::parse($row->out_time)->format('H:i:s') : null;
+
+            $timing = DutyTimeResolver::resolve($empId, $date);
+
+            if ($timing['is_overnight']) {
+                $nextDayOut = DeviceLog::where('employee_id', $empId)
+                    ->whereDate('timestamp', Carbon::parse($date)->addDay())
+                    ->whereTime('timestamp', '<', '12:00:00')
+                    ->orderBy('timestamp', 'desc')
+                    ->first();
+
+                if ($nextDayOut) {
+                    $out = Carbon::parse($nextDayOut->timestamp)->format('H:i:s');
+                }
+            }
+
+            $status = AttendanceStatusResolver::resolve(
+                $in,
+                $out,
+                $timing['start'],
+                $timing['end'],
+                $timing['is_overnight']
+            );
+
+            DailyAttendance::updateOrCreate(
+                ['employee_id' => $empId, 'date' => $date],
+                [
+                    'in_time' => $in,
+                    'out_time' => $out,
+                    'status' => $status,
+                ]
+            );
+        }
+
+        return back()->with('success', "Attendance recalculated for $date using stored device logs.");
+    }
 }

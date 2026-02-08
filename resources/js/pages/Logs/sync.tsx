@@ -15,15 +15,15 @@ export default function SyncLogs() {
     const reportForm = useForm();     // for sending reports
     const usersForm = useForm();      // for syncing users
     const dailyForm = useForm();   // for generating daily attendance
-
+    const recalculateForm = useForm({
+        date: new Date().toISOString().split('T')[0]
+    });
 
     const [showOfficeModal, setShowOfficeModal] = useState(false);
-
     const [officeStartDate, setOfficeStartDate] = useState('');
     const [officeEndDate, setOfficeEndDate] = useState('');
     const [officeIn, setOfficeIn] = useState('08:00');
     const [officeOut, setOfficeOut] = useState('14:30');
-
 
     const [lastSynced, setLastSynced] = useState<string | null>(null);
     const [lastSent, setLastSent] = useState<string | null>(null);
@@ -76,6 +76,17 @@ export default function SyncLogs() {
         });
     };
 
+    const handleRecalculate = () => {
+        recalculateForm.post(route('logs.recalculate'), {
+            preserveScroll: true,
+            onSuccess: () => {
+                toast.success('Attendance recalculated successfully');
+            },
+            onError: () => {
+                toast.error('Recalculation failed');
+            }
+        });
+    };
 
     const handleSendReport = () => {
         reportForm.post(route('report.send_department'), {
@@ -144,6 +155,31 @@ export default function SyncLogs() {
                         >
                             {dailyForm.processing ? 'Generating...' : 'Generate Attendance'}
                         </button>
+                    </div>
+
+                    {/* Recalculate Attendance from Stored Logs */}
+                    <div className="max-w-sm p-6 bg-white border border-gray-200 rounded-lg shadow-sm dark:bg-gray-800 dark:border-gray-700 border-l-4 border-l-rose-500">
+                        <h5 className="mb-2 text-xl font-bold tracking-tight text-gray-900 dark:text-white flex items-center gap-2">
+                            Recalculate from Logs
+                        </h5>
+                        <p className="mb-3 font-normal text-gray-700 dark:text-gray-400">
+                            If sync failed midway, use this to recalculate attendance for a specific date from stored logs.
+                        </p>
+                        <div className="flex flex-col gap-3">
+                            <input
+                                type="date"
+                                value={recalculateForm.data.date}
+                                onChange={e => recalculateForm.setData('date', e.target.value)}
+                                className="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-rose-500 focus:border-rose-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
+                            />
+                            <button
+                                onClick={handleRecalculate}
+                                disabled={recalculateForm.processing}
+                                className="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-rose-600 hover:bg-rose-700 rounded-md focus:outline-none disabled:bg-gray-400 gap-2"
+                            >
+                                {recalculateForm.processing ? 'Recalculating...' : 'Recalculate Now'}
+                            </button>
+                        </div>
                     </div>
 
 
