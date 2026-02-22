@@ -60,9 +60,14 @@ export default function StoremanIssue({ pendingGrouped, issuedGrouped }: any) {
         const matchName = searchName
             ? group.employee_name?.toLowerCase().includes(searchName.toLowerCase())
             : true;
-
         return matchDate && matchName;
     });
+
+    // 🔍 Search for Pending
+    const [searchPending, setSearchPending] = useState("");
+    const filteredPending = pendingGrouped.filter((group: any) =>
+        group.employee_name.toLowerCase().includes(searchPending.toLowerCase())
+    );
 
 
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -72,11 +77,13 @@ export default function StoremanIssue({ pendingGrouped, issuedGrouped }: any) {
         issued_quantity: "",
         specification: "",
         budget_code: "",
+        storeman_comment: "",
     });
 
     const submit = () => {
         // ... (submit logic remains the same)
         post(route("voucher.storeman.issue", selected.id), {
+            preserveScroll: true, // 💡 Keep scroll position
             onSuccess: () => {
                 reset();
                 setSelected(null);
@@ -112,11 +119,22 @@ export default function StoremanIssue({ pendingGrouped, issuedGrouped }: any) {
             <Head title="Store Issue" />
 
             <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* ... (LEFT — PENDING section remains the same) ... */}
+                {/* LEFT — PENDING */}
                 <div className="bg-white p-5 rounded shadow">
                     <h2 className="font-semibold mb-3">Pending Issues</h2>
 
-                    {pendingGrouped.map((group: any, idx: number) => (
+                    {/* Search Input for Pending Issues */}
+                    <div className="mb-4">
+                        <input
+                            type="text"
+                            placeholder="Search pending by employee name..."
+                            value={searchPending}
+                            onChange={(e) => setSearchPending(e.target.value)}
+                            className="w-full border rounded px-3 py-1 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                        />
+                    </div>
+
+                    {filteredPending.map((group: any, idx: number) => (
                         <div key={idx} className="mb-6 bg-gray-50 p-4 rounded-lg border border-gray-200">
                             {/* Header Info */}
                             <div className="mb-3">
@@ -263,7 +281,7 @@ export default function StoremanIssue({ pendingGrouped, issuedGrouped }: any) {
 
             {/* ISSUE MODAL - Modern & Draggable */}
             {selected && (
-                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-40">
+                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-40">
                     <div
                         className="bg-white rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden border border-gray-100"
                         style={{
@@ -381,10 +399,15 @@ export default function StoremanIssue({ pendingGrouped, issuedGrouped }: any) {
                                         <input
                                             type="number"
                                             placeholder="Quantity to issue"
-                                            className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all bg-gray-50 focus:bg-white"
+                                            className={`w-full pl-10 ${selected?.product?.stock_unit_name ? 'pr-20' : 'pr-4'} py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all bg-gray-50 focus:bg-white`}
                                             value={data.issued_quantity}
                                             onChange={e => setData('issued_quantity', e.target.value)}
                                         />
+                                        {selected?.product?.stock_unit_name && (
+                                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-indigo-500 uppercase bg-indigo-50 dark:bg-indigo-900/30 px-2 py-1 rounded-lg border border-indigo-100 dark:border-indigo-800">
+                                                {selected.product.stock_unit_name}
+                                            </span>
+                                        )}
                                     </div>
                                     {errors.issued_quantity && <p className="text-red-500 text-xs mt-1">{errors.issued_quantity}</p>}
                                 </div>
@@ -415,12 +438,27 @@ export default function StoremanIssue({ pendingGrouped, issuedGrouped }: any) {
                                 </label>
                                 <textarea
                                     placeholder="Enter product specification or notes..."
-                                    rows={3}
+                                    rows={2}
                                     className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all bg-gray-50 focus:bg-white resize-none"
                                     value={data.specification}
                                     onChange={e => setData('specification', e.target.value)}
                                 />
                                 {errors.specification && <p className="text-red-500 text-xs mt-1">{errors.specification}</p>}
+                            </div>
+
+                            {/* Storeman Comment */}
+                            <div className="relative">
+                                <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">
+                                    Storeman Comment <span className="text-red-500 lowercase font-normal">(required if cancelling)</span>
+                                </label>
+                                <textarea
+                                    placeholder="Enter comment (optional for issues, required for cancellation)..."
+                                    rows={3}
+                                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all bg-gray-50 focus:bg-white resize-none"
+                                    value={data.storeman_comment}
+                                    onChange={e => setData('storeman_comment', e.target.value)}
+                                />
+                                {errors.storeman_comment && <p className="text-red-500 text-xs mt-1">{errors.storeman_comment}</p>}
                             </div>
                         </div>
 
@@ -431,12 +469,29 @@ export default function StoremanIssue({ pendingGrouped, issuedGrouped }: any) {
                                 Drag header to move
                             </p>
                             <div className="flex gap-3">
+                                {/* Cancel / Deny Button */}
                                 <button
-                                    onClick={() => setSelected(null)}
-                                    className="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-100 font-medium transition-colors"
+                                    onClick={() => {
+                                        if (!data.storeman_comment) {
+                                            alert("Please provide a comment before cancelling.");
+                                            return;
+                                        }
+                                        if (confirm("Are you sure you want to CANCEL this requisition? This cannot be undone.")) {
+                                            post(route("voucher.storeman.cancel", selected.id), {
+                                                preserveScroll: true, // 💡 Keep scroll position
+                                                onSuccess: () => {
+                                                    reset();
+                                                    setSelected(null);
+                                                },
+                                            });
+                                        }
+                                    }}
+                                    disabled={processing}
+                                    className="px-5 py-2.5 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 font-medium transition-colors disabled:opacity-50"
                                 >
-                                    Cancel
+                                    Reject / Cancel
                                 </button>
+
                                 <button
                                     onClick={submit}
                                     disabled={processing}

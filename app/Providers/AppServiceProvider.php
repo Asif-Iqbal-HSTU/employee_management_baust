@@ -106,8 +106,11 @@ class AppServiceProvider extends ServiceProvider
                 }
 
                 return [
-                    'pending_issues' => IssueVoucher::where('allowed_by_head', 'Yes')
+                    'pending_issues' => IssueVoucher::where('allowed_by_registrar', 'Yes')
                         ->where('issued_by_storeman', 'No')
+                        ->select('requisition_employee_id', 'date')
+                        ->distinct()
+                        ->get()
                         ->count(),
                     'head_voucher_pending' => $headVoucherPending,
                 ];

@@ -38,6 +38,7 @@ export default function ManualEntry() {
     const [userDetails, setUserDetails] = useState<{ name: string, employee_id: string } | null>(null);
     const [multipleUsers, setMultipleUsers] = useState<{ name: string, employee_id: string }[] | null>(null);
     const [existingEntry, setExistingEntry] = useState(false);
+    const [initialStatus, setInitialStatus] = useState('');
 
     // Modal State
     const [modal, setModal] = useState<{
@@ -80,15 +81,18 @@ export default function ManualEntry() {
 
                 if (response.data.attendance) {
                     setExistingEntry(true);
+                    const initial = response.data.attendance.status || '';
+                    setInitialStatus(initial);
                     setFormData({
                         in_time: response.data.attendance.in_time || '',
                         out_time: response.data.attendance.out_time || '',
-                        status: response.data.attendance.status || '',
+                        status: initial,
                         remarks: response.data.attendance.remarks || '',
                     });
                     toast.info('Existing entry found.');
                 } else {
                     setExistingEntry(false);
+                    setInitialStatus('');
                     toast.success('Ready for new entry.');
                 }
             }
@@ -247,7 +251,14 @@ export default function ManualEntry() {
                                             type="time"
                                             step="1"
                                             value={formData.in_time}
-                                            onChange={(e) => setFormData({ ...formData, in_time: e.target.value })}
+                                            onChange={(e) => {
+                                                const newVal = e.target.value;
+                                                setFormData(prev => ({
+                                                    ...prev,
+                                                    in_time: newVal,
+                                                    status: prev.status === initialStatus ? '' : prev.status
+                                                }));
+                                            }}
                                         />
                                     </div>
                                     <div className="space-y-2">
@@ -259,7 +270,14 @@ export default function ManualEntry() {
                                             type="time"
                                             step="1"
                                             value={formData.out_time}
-                                            onChange={(e) => setFormData({ ...formData, out_time: e.target.value })}
+                                            onChange={(e) => {
+                                                const newVal = e.target.value;
+                                                setFormData(prev => ({
+                                                    ...prev,
+                                                    out_time: newVal,
+                                                    status: prev.status === initialStatus ? '' : prev.status
+                                                }));
+                                            }}
                                         />
                                     </div>
                                 </div>

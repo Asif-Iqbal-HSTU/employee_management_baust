@@ -204,14 +204,33 @@ export default function VoucherAllow({ department, pending, allowed }: any) {
                                             </td>
                                             <td className="border p-2">
                                                 {v.allowed_by_head === "Yes" ? (
-                                                    <span className="flex items-center gap-1 text-xs font-bold uppercase text-green-600">
-                                                        <CheckCircle2 size={14} />
-                                                        Approved
-                                                    </span>
+                                                    <div className="flex flex-col gap-1">
+                                                        <span className="flex items-center gap-1 text-xs font-bold uppercase text-green-600">
+                                                            <CheckCircle2 size={14} />
+                                                            Head: Approved
+                                                        </span>
+                                                        {v.issued_by_storeman === "Yes" && (
+                                                            <span className="flex items-center gap-1 text-xs font-bold uppercase text-blue-600">
+                                                                <CheckCircle2 size={14} />
+                                                                Store: Issued ({v.issued_quantity})
+                                                            </span>
+                                                        )}
+                                                        {v.issued_by_storeman === "Cancelled" && (
+                                                            <span className="flex items-center gap-1 text-xs font-bold uppercase text-red-600">
+                                                                <AlertCircle size={14} />
+                                                                Store: Cancelled
+                                                            </span>
+                                                        )}
+                                                        {v.storeman_comment && (
+                                                            <span className="text-[10px] text-gray-500 italic bg-gray-50 p-1 rounded border">
+                                                                Note: {v.storeman_comment}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 ) : (
                                                     <span className="flex items-center gap-1 text-xs font-bold uppercase text-red-600">
                                                         <AlertCircle size={14} />
-                                                        {v.allowed_by_head}
+                                                        Head: {v.allowed_by_head}
                                                     </span>
                                                 )}
                                             </td>

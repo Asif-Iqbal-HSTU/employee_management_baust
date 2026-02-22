@@ -193,16 +193,23 @@ export default function VoucherPage({ products, vouchers, departments }: any) {
                                     <div className="flex gap-4 items-end">
                                         <div className="flex-1">
                                             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Quantity</label>
-                                            <input
-                                                type="number"
-                                                className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-amber-500 outline-none transition-all dark:text-white"
-                                                min={1}
-                                                max={selectedProduct?.stock_unit_number}
-                                                placeholder={selectedProduct ? `Available: ${selectedProduct.stock_unit_number}` : 'Select product'}
-                                                value={currentQuantity}
-                                                onChange={(e) => setCurrentQuantity(e.target.value)}
-                                                disabled={!selectedProduct}
-                                            />
+                                            <div className="relative">
+                                                <input
+                                                    type="number"
+                                                    className={`w-full pl-4 ${selectedProduct?.stock_unit_name ? 'pr-20' : 'pr-4'} py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-amber-500 outline-none transition-all dark:text-white`}
+                                                    min={1}
+                                                    max={selectedProduct?.stock_unit_number}
+                                                    placeholder={selectedProduct ? `Available: ${selectedProduct.stock_unit_number} ${selectedProduct.stock_unit_name}` : 'Select product'}
+                                                    value={currentQuantity}
+                                                    onChange={(e) => setCurrentQuantity(e.target.value)}
+                                                    disabled={!selectedProduct}
+                                                />
+                                                {selectedProduct?.stock_unit_name && (
+                                                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-amber-600 uppercase bg-amber-50 dark:bg-amber-900/30 px-2 py-1 rounded-lg border border-amber-100 dark:border-amber-800">
+                                                        {selectedProduct.stock_unit_name}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
                                         <button
                                             type="button"
@@ -277,17 +284,34 @@ export default function VoucherPage({ products, vouchers, departments }: any) {
                                 <h2 className="text-sm font-bold mb-4 text-gray-500 uppercase tracking-widest">Recent Requisitions</h2>
                                 <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
                                     {vouchers.map((v: any) => (
-                                        <div key={v.id} className="p-3 border-b dark:border-gray-700 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
-                                            <div className="flex-1">
-                                                <p className="text-sm font-bold text-gray-900 dark:text-white uppercase truncate">{v.product?.product_name}</p>
-                                                <div className="flex items-center gap-3 mt-1">
-                                                    <span className="text-[10px] bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded font-bold text-gray-500">{v.date}</span>
-                                                    <span className="text-[10px] font-bold text-indigo-600 uppercase">{v.requisitioned_quantity} {v.product?.stock_unit_name}</span>
+                                        <div key={v.id} className="p-3 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex-1">
+                                                    <p className="text-sm font-bold text-gray-900 dark:text-white uppercase truncate">{v.product?.product_name}</p>
+                                                    <div className="flex items-center gap-3 mt-1">
+                                                        <span className="text-[10px] bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded font-bold text-gray-500">{v.date}</span>
+                                                        <span className="text-[10px] font-bold text-indigo-600 uppercase">{v.requisitioned_quantity} {v.product?.stock_unit_name}</span>
+                                                    </div>
+                                                </div>
+                                                <div className={`text-[10px] font-extrabold px-2 py-1 rounded ml-2 ${v.issued_by_storeman === 'Yes' ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400' :
+                                                    v.issued_by_storeman === 'Cancelled' ? 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400' :
+                                                        'bg-gray-50 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+                                                    }`}>
+                                                    ST: {v.issued_by_storeman === 'Yes' ? 'ISSUED' : v.issued_by_storeman === 'Cancelled' ? 'REJECTED' : v.issued_by_storeman}
                                                 </div>
                                             </div>
-                                            <div className="text-[10px] font-extrabold px-2 py-1 rounded bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400">
-                                                ST: {v.issued_by_storeman}
-                                            </div>
+
+                                            {/* Storeman Comment */}
+                                            {v.storeman_comment && (
+                                                <div className="mt-2 text-[10px] bg-yellow-50 dark:bg-yellow-900/10 p-2 rounded border border-yellow-100 dark:border-yellow-800 text-yellow-800 dark:text-yellow-200">
+                                                    <span className="font-bold">Note:</span> {v.storeman_comment}
+                                                    {v.issued_by_storeman === 'Yes' && v.issued_quantity && (
+                                                        <div className="mt-1 font-bold text-green-700 dark:text-green-400">
+                                                            Issued: {v.issued_quantity}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
                                         </div>
                                     ))}
                                 </div>

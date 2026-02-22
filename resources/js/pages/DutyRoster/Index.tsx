@@ -1,12 +1,12 @@
 import AppLayout from '@/layouts/app-layout';
-import { useForm, Head } from '@inertiajs/react';
+import { useForm, Head, router } from '@inertiajs/react';
 import { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, User, ClipboardList, Search, X, CheckCircle2 } from 'lucide-react';
+import { Calendar, Clock, User, ClipboardList, Search, X, CheckCircle2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Employee {
@@ -288,6 +288,22 @@ export default function DutyRoster({ employees, rosters, isAdmin }: Props) {
                                                 </td>
                                                 <td className="px-6 py-4 max-w-xs truncate text-slate-500 italic">
                                                     {roster.reason || '—'}
+                                                </td>
+                                                <td className="px-6 py-4 text-right">
+                                                    <button
+                                                        onClick={() => {
+                                                            if (confirm('Are you sure you want to delete this roster entry?')) {
+                                                                router.delete(route('duty.roster.destroy', roster.id), {
+                                                                    onSuccess: () => toast.success('Roster deleted'),
+                                                                    preserveScroll: true,
+                                                                });
+                                                            }
+                                                        }}
+                                                        className="text-slate-400 hover:text-red-600 transition-colors p-1"
+                                                        title="Delete Roster"
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </button>
                                                 </td>
                                             </tr>
                                         )) : (

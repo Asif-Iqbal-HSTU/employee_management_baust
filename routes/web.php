@@ -460,6 +460,9 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/storeman/issues/{voucher}', [StoreIssueController::class, 'storeman_issue'])
         ->name('voucher.storeman.issue');
 
+    Route::post('/storeman/issues/{voucher}/cancel', [StoreIssueController::class, 'storeman_cancel'])
+        ->name('voucher.storeman.cancel');
+
     //    Route::get('/voucher/export/{employee}/{date}', [StoreIssueController::class, 'export'])->name('voucher.export');
 
     // Route for the AJAX request to get the HTML preview
@@ -505,6 +508,10 @@ Route::post('/reports/late-summary/download', [ReportController::class, 'downloa
 
 Route::get('/duty-roster', [DutyRosterController::class, 'index'])->name('duty.roster');
 Route::post('/duty-roster', [DutyRosterController::class, 'store'])->name('duty.roster.store');
+Route::delete('/duty-roster/{roster}', [DutyRosterController::class, 'destroy'])->name('duty.roster.destroy');
+
+Route::get('/duty-roster/weekly', [DutyRosterController::class, 'weeklyIndex'])->name('duty.roster.weekly');
+Route::post('/duty-roster/weekly', [DutyRosterController::class, 'weeklyStore'])->name('duty.roster.weekly.store');
 
 Route::get('/duty-roster/security', [DutyRosterController::class, 'securityIndex'])->name('duty.roster.security');
 Route::post('/duty-roster/security', [DutyRosterController::class, 'securityStore'])->name('duty.roster.security.store');

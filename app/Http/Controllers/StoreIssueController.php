@@ -131,6 +131,9 @@ class StoreIssueController extends Controller
             ]);
         }
 
+        // ❌ Require comment if issuing less than requested
+        // ❌ Require comment check removed for partial issues as requested.
+
         DB::transaction(function () use ($request, $voucher, $product) {
 
             // 1️⃣ Update Issue Voucher
@@ -140,6 +143,7 @@ class StoreIssueController extends Controller
                 'receiver' => $request->receiver,
                 'issued_quantity' => $request->issued_quantity,
                 'specification' => $request->specification,
+                'storeman_comment' => $request->storeman_comment,
                 'issued_by_storeman' => 'Yes',
             ]);
 
@@ -157,6 +161,20 @@ class StoreIssueController extends Controller
         });
 
         return back()->with('success', 'Item issued successfully.');
+    }
+
+    public function storeman_cancel(Request $request, IssueVoucher $voucher)
+    {
+        $request->validate([
+            'storeman_comment' => 'required|string|max:1000',
+        ]);
+
+        $voucher->update([
+            'storeman_comment' => $request->storeman_comment,
+            'issued_by_storeman' => 'Cancelled',
+        ]);
+
+        return back()->with('success', 'Voucher cancelled successfully.');
     }
 
     public function printStockRegister(StoreProduct $product)

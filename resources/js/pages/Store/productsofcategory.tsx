@@ -383,8 +383,8 @@ export default function ProductOfCategory({ products, category, vendors }: any) 
                                     <option value="Set">Set</option>
                                     <option value="Book">Book</option>
                                     <option value="Packet">Packet</option>
-                                    <option value="Litre">Litre</option>
-                                    <option value="Kg">Kg</option>
+                                    <option value="mili-litre">mili-litre</option>
+                                    <option value="gram">gram</option>
                                 </select>
                                 {errors.stock_unit_name && <p className="text-sm text-red-500">{errors.stock_unit_name}</p>}
                             </div>

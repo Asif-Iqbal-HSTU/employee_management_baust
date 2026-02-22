@@ -179,4 +179,124 @@ class DutyRosterController extends Controller
         $status = $request->finalize ? 'finalized' : 'unfinalized';
         return back()->with('success', "Weekly duty roster {$status} successfully.");
     }
+    public function weeklyIndex()
+    {
+        $user = Auth::user();
+        $isAdmin = $user->employee_id === '25052';
+        $deptHead = DB::table('dept_heads')->where('employee_id', $user->employee_id)->first();
+
+        if (!$isAdmin && !$deptHead) {
+            abort(403, 'Unauthorized access.');
+        }
+
+        $query = User::query()->with('assignment.department');
+
+        if (!$isAdmin) {
+            $query->whereHas('assignment', function ($q) use ($deptHead) {
+                $q->where('department_id', $deptHead->department_id);
+            });
+        }
+
+        $employees = $query->get()->map(function ($emp) {
+            return [
+                'employee_id' => $emp->employee_id,
+                'name' => $emp->name,
+                'department' => $emp->assignment->department->name ?? 'N/A',
+            ];
+        });
+
+        // 💡 Fetch upcoming rosters for context
+        $rosters = DutyRoster::with([
+            'user' => function ($q) {
+                $q->select('employee_id', 'name');
+            }
+        ])
+            ->when(!$isAdmin, function ($q) use ($deptHead) {
+                $q->whereHas('user.assignment', function ($sq) use ($deptHead) {
+                    $sq->where('department_id', $deptHead->department_id);
+                });
+            })
+            ->whereDate('date', '>=', Carbon::today())
+            ->orderBy('date', 'asc')
+            ->orderBy('start_time', 'asc')
+            ->paginate(20);
+
+        return Inertia::render('DutyRoster/Weekly', [
+            'employees' => $employees,
+            'rosters' => $rosters,
+            'isAdmin' => $isAdmin,
+        ]);
+    }
+
+    public function weeklyStore(Request $request)
+    {
+        $data = $request->validate([
+            'employee_ids' => 'required|array|min:1',
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:start_date',
+            'schedule' => 'required|array',
+            'schedule.*.day' => 'required|string',
+            'schedule.*.active' => 'required|boolean',
+            'schedule.*.start_time' => 'required_if:schedule.*.active,true',
+            'schedule.*.end_time' => 'required_if:schedule.*.active,true',
+        ]);
+
+        $dates = Carbon::parse($data['start_date'])
+            ->daysUntil($data['end_date']);
+
+        $activeDays = collect($data['schedule'])->where('active', true)->keyBy('day');
+
+        if ($activeDays->isEmpty()) {
+            return back()->withErrors(['schedule' => 'At least one day must be active.']);
+        }
+
+        DB::transaction(function () use ($data, $dates, $activeDays) {
+            foreach ($data['employee_ids'] as $empId) {
+                foreach ($dates as $date) {
+                    $dayName = $date->format('l'); // e.g., Monday
+
+                    if ($activeDays->has($dayName)) {
+                        $schedule = $activeDays->get($dayName);
+                        
+                        DutyRoster::updateOrCreate(
+                            [
+                                'employee_id' => $empId,
+                                'date' => $date->format('Y-m-d'),
+                            ],
+                            [
+                                'start_time' => $schedule['start_time'],
+                                'end_time' => $schedule['end_time'],
+                                'reason' => 'Weekly Roster',
+                                'created_by' => Auth::user()->employee_id,
+                            ]
+                        );
+                    }
+                }
+            }
+        });
+
+        return back()->with('success', 'Weekly duty roster saved successfully.');
+    }
+    public function destroy(DutyRoster $roster)
+    {
+        $user = Auth::user();
+        $isAdmin = $user->employee_id === '25052';
+        
+        // If not created by user and not admin, check dept head status
+        if ($roster->created_by != $user->employee_id && !$isAdmin) {
+             $deptHead = DB::table('dept_heads')->where('employee_id', $user->employee_id)->first();
+             if ($deptHead) {
+                 // Check if the roster belongs to an employee in this dept
+                 $rosterUser = User::with('assignment')->where('employee_id', $roster->employee_id)->first();
+                 if (!$rosterUser || !$rosterUser->assignment || $rosterUser->assignment->department_id != $deptHead->department_id) {
+                     abort(403, 'Unauthorized action.');
+                 }
+             } else {
+                 abort(403, 'Unauthorized action.');
+             }
+        }
+
+        $roster->delete();
+        return back()->with('success', 'Roster entry deleted successfully.');
+    }
 }

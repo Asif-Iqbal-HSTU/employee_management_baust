@@ -219,12 +219,20 @@ export function AppSidebar() {
     }
 
     if (authUser?.headed_department || isITAdmin) {
-        mainNavItems.push({
-            title: 'Duty Roster',
-            href: '/duty-roster',
-            category: 'Attendance',
-            icon: Logs,
-        });
+        mainNavItems.push(
+            {
+                title: 'Duty Roster',
+                href: '/duty-roster',
+                category: 'Attendance',
+                icon: Logs,
+            },
+            {
+                title: 'Weekly Duty Roster',
+                href: '/duty-roster/weekly',
+                category: 'Attendance',
+                icon: Calendar,
+            }
+        );
     }
 
     if (authUser?.employee_id == '20019' || authUser?.employee_id == '25048' || isITAdmin) {

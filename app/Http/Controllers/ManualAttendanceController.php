@@ -81,43 +81,55 @@ class ManualAttendanceController extends Controller
         DB::beginTransaction();
         try {
             // 1. Handle Device Logs
-            // We'll remove existing "MANUAL" logs for this day/employee and add new ones if provided
-            // Or just add new ones. To keep it simple and clean for associated tables, 
-            // if we are editing, we might want to reconcile.
-            
-            // For now, let's just make sure there are logs covering these times.
+            // Remove existing "MANUAL" logs for this day/employee to avoid orphans when times change
+            DeviceLog::where('employee_id', $employeeId)
+                ->whereDate('timestamp', $date)
+                ->where('uid', 0) // Manual logs have UID 0
+                ->delete();
+
             if ($inTime) {
                 $inTimestamp = Carbon::parse($date . ' ' . $inTime)->toDateTimeString();
-                DeviceLog::updateOrCreate(
-                    [
-                        'employee_id' => $employeeId,
-                        'timestamp' => $inTimestamp,
-                    ],
-                    [
-                        'type' => 0, // Manual/Standard
-                        'uid' => 0,  // Manual
-                    ]
-                );
+                DeviceLog::create([
+                    'employee_id' => $employeeId,
+                    'timestamp' => $inTimestamp,
+                    'type' => 0, // Manual/Standard
+                    'uid' => 0,  // Manual
+                ]);
             }
 
             if ($outTime) {
                 $outTimestamp = Carbon::parse($date . ' ' . $outTime)->toDateTimeString();
-                DeviceLog::updateOrCreate(
-                    [
-                        'employee_id' => $employeeId,
-                        'timestamp' => $outTimestamp,
-                    ],
-                    [
-                        'type' => 0, // Manual/Standard
-                        'uid' => 0,  // Manual
-                    ]
-                );
+                DeviceLog::create([
+                    'employee_id' => $employeeId,
+                    'timestamp' => $outTimestamp,
+                    'type' => 0, // Manual/Standard
+                    'uid' => 0,  // Manual
+                ]);
             }
 
-            // 2. Resolve Status if not provided
+            // 2. Resolve Status
             $timing = DutyTimeResolver::resolve($employeeId, $date);
             $status = $request->status;
             
+            // Check if we should auto-recalculate status even if it's provided.
+            // If the provided status matches the existing record's status, but the times have changed,
+            // we assume the user wants the status to be updated automatically based on the new times.
+            $existing = DailyAttendance::where('employee_id', $employeeId)
+                ->where('date', $date)
+                ->first();
+
+            if ($existing && $status === $existing->status) {
+                // Normalize times for comparison
+                $oldIn = $existing->in_time ? Carbon::parse($existing->in_time)->format('H:i:s') : null;
+                $newIn = $inTime ? Carbon::parse($inTime)->format('H:i:s') : null;
+                $oldOut = $existing->out_time ? Carbon::parse($existing->out_time)->format('H:i:s') : null;
+                $newOut = $outTime ? Carbon::parse($outTime)->format('H:i:s') : null;
+
+                if ($oldIn !== $newIn || $oldOut !== $newOut) {
+                    $status = null; // Force re-calculation
+                }
+            }
+
             if (!$status) {
                 $status = AttendanceStatusResolver::resolve(
                     $inTime,
