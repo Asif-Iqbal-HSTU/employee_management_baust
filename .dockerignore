@@ -1,0 +1,47 @@
+# Dependencies (installed in container)
+node_modules
+vendor
+
+# Version control
+.git
+.gitattributes
+.gitignore
+
+# IDE & Editor
+.idea
+.vscode
+*.swp
+*.swo
+.trunk
+
+# Environment files (sensitive)
+.env
+.env.backup
+.env.production
+
+# Build artifacts
+public/build
+public/hot
+
+# Testing
+tests
+phpunit.xml
+.phpunit.result.cache
+
+# CI/CD & GitHub
+.github
+
+# Docker files (avoid recursive context)
+docker-compose*.yml
+
+# Misc
+*.md
+LICENSE
+.editorconfig
+.prettierrc
+.prettierignore
+eslint.config.js
+storage/logs/*
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*

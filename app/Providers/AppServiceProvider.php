@@ -7,6 +7,7 @@ use Illuminate\Support\ServiceProvider;
 use Inertia\Inertia;
 use App\Models\Leave;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\URL; // Force HTTPS URLs behind Cloudflare Tunnel
 use App\Models\IssueVoucher;
 
 class AppServiceProvider extends ServiceProvider
@@ -24,6 +25,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Fix mixed content: app runs behind Cloudflare Tunnel (HTTPS),
+        // but Laravel generates HTTP URLs by default, causing browser to block requests.
+        if (app()->environment('production')) {
+            URL::forceScheme('https');
+        }
+
         Inertia::share([
             'repairCounts' => function () {
                 $user = auth()->user();
