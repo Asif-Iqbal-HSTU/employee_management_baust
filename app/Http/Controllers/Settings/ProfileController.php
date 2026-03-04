@@ -18,9 +18,17 @@ class ProfileController extends Controller
      */
     public function edit(Request $request): Response
     {
+        $user = $request->user();
+        $user->load(['assignment.department', 'assignment.designation', 'employeeDetail']);
+
         return Inertia::render('settings/profile', [
             'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
             'status' => $request->session()->get('status'),
+            'employeeDetail' => $user->employeeDetail,
+            'assignment' => $user->assignment ? [
+                'department' => $user->assignment->department?->name ?? null,
+                'designation' => $user->assignment->designation?->name ?? null,
+            ] : null,
         ]);
     }
 

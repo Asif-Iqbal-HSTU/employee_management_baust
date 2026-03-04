@@ -15,26 +15,26 @@ class DeptHeadAttendanceController extends Controller
         $user = Auth::user();
 
         // 1️⃣ Verify department head
-        $deptHead = DB::table('dept_heads')
+        $deptHeads = DB::table('dept_heads')
             ->join('departments', 'dept_heads.department_id', '=', 'departments.id')
             ->where('dept_heads.employee_id', $user->employee_id)
             ->select('dept_heads.*', 'departments.dept_name')
-            ->first();
+            ->get();
 
-        if (!$deptHead) {
+        if ($deptHeads->isEmpty()) {
             abort(403, 'You are not a department head');
         }
 
-        $departmentId = $deptHead->department_id;
-        $departmentName = $deptHead->dept_name;
+        $departmentIds = $deptHeads->pluck('department_id')->toArray();
+        $departmentName = $deptHeads->pluck('dept_name')->join(', ');
 
         $date = $request->input('date', Carbon::today()->toDateString());
 
-        // 2️⃣ Get employees of this department
+        // 2️⃣ Get employees of all headed departments
         $employees = DB::table('users')
             ->join('user_assignments', 'users.employee_id', '=', 'user_assignments.employee_id')
             ->leftJoin('designations', 'designations.id', '=', 'user_assignments.designation_id')
-            ->where('user_assignments.department_id', $departmentId)
+            ->whereIn('user_assignments.department_id', $departmentIds)
             ->select('users.employee_id', 'users.name', 'designations.designation_name as designation')
             ->get();
 
@@ -82,7 +82,7 @@ class DeptHeadAttendanceController extends Controller
 
         return inertia('DeptHead/Attendance', [
             'date' => $date,
-            'department' => ['id' => $departmentId, 'name' => $departmentName],
+            'department' => ['id' => $departmentIds[0], 'name' => $departmentName],
             'report' => $report,
         ]);
     }
@@ -134,17 +134,23 @@ class DeptHeadAttendanceController extends Controller
         $attendance->remarks = $request->remarks;
         $attendance->save();*/
 
+        $updateData = [
+            'status' => $request->status,
+            'remarks' => $request->remarks,
+        ];
+
+        // Only clear times if specifically marking as 'absent'
+        if ($request->status === 'absent') {
+            $updateData['in_time'] = null;
+            $updateData['out_time'] = null;
+        }
+
         DailyAttendance::updateOrCreate(
             [
                 'employee_id' => $request->employee_id,
                 'date' => $request->date
             ],
-            [
-                'in_time' => null,
-                'out_time' => null,
-                'status' => $request->status,
-                'remarks' => $request->remarks
-            ]
+            $updateData
         );
 
         return back()->with('success', 'Attendance updated successfully.');
@@ -159,15 +165,19 @@ class DeptHeadAttendanceController extends Controller
         $user = Auth::user();
 
         // ✅ verify dept head
-        $deptHead = DB::table('dept_heads')->where('employee_id', $user->employee_id)->first();
-        if (!$deptHead) {
+        // ✅ verify dept head
+        $deptHeadIds = DB::table('dept_heads')
+            ->where('employee_id', $user->employee_id)
+            ->pluck('department_id')
+            ->toArray();
+        if (empty($deptHeadIds)) {
             abort(403, 'Not authorized');
         }
 
-        // ✅ check that the employee belongs to their department
+        // ✅ check that the employee belongs to one of their departments
         $belongs = DB::table('user_assignments')
             ->where('employee_id', $employeeId)
-            ->where('department_id', $deptHead->department_id)
+            ->whereIn('department_id', $deptHeadIds)
             ->exists();
 
         if (!$belongs) {

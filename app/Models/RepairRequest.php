@@ -16,7 +16,7 @@ class RepairRequest extends Model
         'accessories', 'problem_description',
         'job_id', 'date_received', 'received_by',
         'initial_observation', 'expected_delivery',
-        'assigned_to', 'assigned_phone', 'status'
+        'assigned_to', 'assigned_phone', 'status', 'state', 'completed_actions'
     ];
 
     protected $casts = [

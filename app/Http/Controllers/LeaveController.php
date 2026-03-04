@@ -108,15 +108,14 @@ class LeaveController extends Controller
         $user = Auth::user();
 
         // 1️⃣ Verify department head
-        $deptHead = DB::table('dept_heads')
+        $deptHeadIds = DB::table('dept_heads')
             ->where('employee_id', $user->employee_id)
-            ->first();
+            ->pluck('department_id')
+            ->toArray();
 
-        if (!$deptHead) {
+        if (empty($deptHeadIds)) {
             abort(403, 'You are not a department head.');
         }
-
-        $departmentId = $deptHead->department_id;
 
         // Default yearly limits
         $defaultCasual = 20;
@@ -132,7 +131,7 @@ class LeaveController extends Controller
             // 👇 JOIN replacement employee
             ->leftJoin('users as rep', 'rep.employee_id', '=', 'leaves.replace')
 
-            ->where('user_assignments.department_id', $departmentId)
+            ->whereIn('user_assignments.department_id', $deptHeadIds)
             ->whereIn('leaves.status', ['Requested to head', 'Cancellation Requested'])
             ->orderBy('leaves.start_date', 'desc')
             ->select(
@@ -192,7 +191,7 @@ class LeaveController extends Controller
         $employees = DB::table('users')
             ->join('user_assignments', 'users.employee_id', '=', 'user_assignments.employee_id')
             ->leftJoin('designations', 'designations.id', '=', 'user_assignments.designation_id')
-            ->where('user_assignments.department_id', $departmentId)
+            ->whereIn('user_assignments.department_id', $deptHeadIds)
             ->select(
                 'users.employee_id',
                 'users.name',
@@ -207,7 +206,7 @@ class LeaveController extends Controller
             ->join('users', 'users.employee_id', '=', 'leaves.employee_id')
             ->join('user_assignments', 'users.employee_id', '=', 'user_assignments.employee_id')
             ->leftJoin('designations', 'designations.id', '=', 'user_assignments.designation_id')
-            ->where('user_assignments.department_id', $departmentId)
+            ->whereIn('user_assignments.department_id', $deptHeadIds)
             ->whereIn('leaves.status', ['Sent to Registrar', 'Approved by Registrar'])
             ->whereDate('leaves.start_date', '<=', $today)
             ->whereDate('leaves.end_date', '>=', $today)

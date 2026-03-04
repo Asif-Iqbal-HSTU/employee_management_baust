@@ -15,6 +15,7 @@ import {
     TicketsPlane,
     TreePalm,
     User2,
+    Users,
     Volleyball,
     Warehouse,
     BookMarked,
@@ -40,10 +41,12 @@ export function AppSidebar() {
     }
 
     const isITAdmin = authUser?.employee_id === '25052';
+    const repairAdminIds = ['25052', '21023', '25030', '24079', '25048'];
+    const isRepairTeam = repairAdminIds.includes(authUser?.employee_id);
 
-    const mainNavItems: NavItem[] = [{ title: 'Dashboard', href: '/dashboard', category: 'Dashboard', icon: LayoutGrid }];
+    const mainNavItems: any[] = [{ title: 'Dashboard', href: '/dashboard', category: 'Dashboard', icon: LayoutGrid }];
 
-    if (authUser?.headed_department || authUser?.employee_id == 25052 || authUser?.employee_id == 21023 || authUser?.employee_id == 25040) {
+    if ((authUser?.headed_department && authUser.headed_department.length > 0) || authUser?.employee_id == 25052 || authUser?.employee_id == 21023 || authUser?.employee_id == 25040) {
         mainNavItems.push(
             { title: 'My Department Attendance', href: '/dept-head/attendance', category: 'Attendance', icon: CalendarClock },
             {
@@ -62,7 +65,7 @@ export function AppSidebar() {
         );
     }
 
-    if (authUser?.headed_department) {
+    if (authUser?.headed_department && authUser.headed_department.length > 0) {
         mainNavItems.push({
             title: (
                 <span className="flex w-full items-center gap-2">
@@ -80,6 +83,7 @@ export function AppSidebar() {
         mainNavItems.push(
             { title: 'Assign Users', href: '/user-assignments', category: 'Attendance', icon: User2 },
             { title: 'Sync Logs', href: '/sync-logs', category: 'Attendance', icon: Logs },
+            { title: 'Department Heads', href: '/dept-heads', category: 'Attendance', icon: Users },
         );
     }
 
@@ -105,8 +109,12 @@ export function AppSidebar() {
                 category: 'Leave Management',
                 icon: TicketsPlane,
             },
-
-            // { title: 'Leave Finalization', href: '/registrar/leave-requests', category: 'Leave Management', icon: TicketsPlane }
+            {
+                title: 'Employee Leave Register',
+                href: '/registrar/all-leaves',
+                category: 'Leave Management',
+                icon: Volleyball,
+            },
         );
     }
 
@@ -192,7 +200,7 @@ export function AppSidebar() {
         });
     }
 
-    if (isITAdmin) {
+    if (isRepairTeam) {
         mainNavItems.push(
             {
                 title: (
@@ -218,7 +226,7 @@ export function AppSidebar() {
         );
     }
 
-    if (authUser?.headed_department || isITAdmin) {
+    if ((authUser?.headed_department && authUser.headed_department.length > 0) || isRepairTeam) {
         mainNavItems.push(
             {
                 title: 'Duty Roster',
@@ -235,7 +243,7 @@ export function AppSidebar() {
         );
     }
 
-    if (authUser?.employee_id == '20019' || authUser?.employee_id == '25048' || isITAdmin) {
+    if (authUser?.employee_id == '20019' || authUser?.employee_id == '25048' || isRepairTeam) {
         mainNavItems.push({
             title: "Security Person's Duty Roster",
             href: '/duty-roster/security',
@@ -244,12 +252,21 @@ export function AppSidebar() {
         });
     }
 
-    if (!isITAdmin) {
+    if (!isRepairTeam) {
         mainNavItems.push({
             title: 'My Repair Requests',
             href: '/repair-requests',
             category: 'IT Repair Cell',
             icon: FileSliders,
+        });
+    }
+
+    if (authUser?.employee_id == '25052') {
+        mainNavItems.push({
+            title: 'All Employees',
+            href: '/hr/employees',
+            category: 'HR Management',
+            icon: Users,
         });
     }
 

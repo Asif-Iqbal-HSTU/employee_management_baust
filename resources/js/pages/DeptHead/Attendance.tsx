@@ -1,6 +1,6 @@
-import EmployeeCalendarModal from '@/Components/EmployeeCalendarModal';
-import EmployeeStatusModal from '@/Components/EmployeeStatusModal';
-import EmployeeAbsentStatusModal from '@/Components/EmployeeAbsentStatusModal';
+import EmployeeCalendarModal from '@/components/EmployeeCalendarModal';
+import EmployeeStatusModal from '@/components/EmployeeStatusModal';
+import EmployeeAbsentStatusModal from '@/components/EmployeeAbsentStatusModal';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/react';
@@ -32,7 +32,7 @@ const breadcrumbs: BreadcrumbItem[] = [{ title: 'Department Attendance', href: '
 export default function Attendance({ date, report, department }: Props) {
     const [searchTerm, setSearchTerm] = useState('');
 
-    const [selectedEmployee, setSelectedEmployee] = useState(null);
+    const [selectedEmployee, setSelectedEmployee] = useState<ReportRow | null>(null);
     const [modalOpen, setModalOpen] = useState(false);
     const [statusModalOpen, setStatusModalOpen] = useState(false);
     const [statusAbsentModalOpen, setAbsentStatusModalOpen] = useState(false);
@@ -41,7 +41,7 @@ export default function Attendance({ date, report, department }: Props) {
         setSelectedDate(newDate);
 
         router.get(
-            route('departments.attendance', department.id),
+            route('depthead.attendance'),
             { date: newDate },
             {
                 preserveState: true,
@@ -51,16 +51,16 @@ export default function Attendance({ date, report, department }: Props) {
     };
 
 
-    const openEmployeeModal = (emp) => {
+    const openEmployeeModal = (emp: ReportRow) => {
         setSelectedEmployee(emp);
         setModalOpen(true);
     };
-    const openLateEmployeeModal = (emp) => {
+    const openLateEmployeeModal = (emp: ReportRow) => {
         setSelectedEmployee(emp);
         console.log(emp);
         setStatusModalOpen(true);
     };
-    const openAbsentEmployeeModal = (emp) => {
+    const openAbsentEmployeeModal = (emp: ReportRow) => {
         setSelectedEmployee(emp);
         console.log(emp);
         setAbsentStatusModalOpen(true);

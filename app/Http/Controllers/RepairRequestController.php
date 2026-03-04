@@ -39,28 +39,50 @@ class RepairRequestController extends Controller
     public function index(Request $request)
     {
         $user = auth()->user();
+        $query = RepairRequest::latest();
 
-        if ($request->has('mine')) {
-            $requests = RepairRequest::where('employee_id', $user->employee_id)
-                ->latest()
-                ->paginate(10);
-        } elseif ($user->employee_id === '25052') {
-            $requests = RepairRequest::latest()->paginate(10);
+        // Check if user wants to see only their own requests (?mine=1)
+        if ($request->query('mine') === '1') {
+            $query->where('employee_id', $user->employee_id);
         } else {
-            $requests = RepairRequest::where('employee_id', $user->employee_id)
-                ->latest()
-                ->paginate(10);
+            // Visibility logic for all requests (IT Cell, HOD, or regular user)
+            if ($this->isRepairAdmin($user)) {
+                // IT Admin - sees everything
+            } elseif ($user->headedDepartment && $user->headedDepartment->count() > 0) {
+                // HOD - sees their own + department requests
+                $deptNames = $user->headedDepartment->map(fn($h) => $h->department->dept_name)->toArray();
+                $deptShortNames = $user->headedDepartment->map(fn($h) => $h->department->short_name)->filter()->toArray();
+                $allNames = array_merge($deptNames, $deptShortNames);
+                $query->where(function ($q) use ($user, $allNames) {
+                    $q->where('employee_id', $user->employee_id)
+                        ->orWhereIn('department', $allNames);
+                });
+            } else {
+                // Regular User - sees only their own
+                $query->where('employee_id', $user->employee_id);
+            }
         }
+
+        $requests = $query->paginate(10)->withQueryString();
 
         return Inertia::render('Repair/Index', [
             'requests' => $requests,
+            'isMine' => $request->query('mine') === '1'
         ]);
     }
 
 
     public function create()
     {
-        return Inertia::render('Repair/Create');
+        $user = auth()->user();
+        $assignment = \App\Models\UserAssignment::with(['department', 'designation'])
+            ->where('employee_id', $user->employee_id)
+            ->first();
+
+        return Inertia::render('Repair/Create', [
+            'autoDepartment' => $assignment && $assignment->department ? $assignment->department->dept_name : '',
+            'autoDesignation' => $assignment && $assignment->designation ? $assignment->designation->designation_name : '',
+        ]);
     }
 
     public function store(Request $request)
@@ -81,18 +103,31 @@ class RepairRequestController extends Controller
             'problem_description' => 'nullable|string',
         ]);
 
-        $data['employee_id'] = auth()->id();
-        $data['job_id'] = 'JOB-' . strtoupper(Str::random(6));
+        $now = now();
+        $data['employee_id'] = auth()->user()->employee_id;
+        $data['job_id'] = $now->format('YdmHi');
 
         RepairRequest::create($data);
 
         return redirect()->route('repair.index')->with('success', 'Repair request submitted successfully.');
     }
 
+    public function downloadPdf(RepairRequest $repairRequest)
+    {
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.repair_request', ['request' => $repairRequest]);
+        return $pdf->download('repair_request_' . $repairRequest->job_id . '.pdf');
+    }
+
     public function updateStatus(Request $request, RepairRequest $repairRequest)
     {
+        if (!$this->isRepairAdmin(auth()->user())) {
+            abort(403, 'Unauthorized.');
+        }
+
         $repairRequest->update($request->validate([
             'status' => 'required|in:Pending,In Progress,Completed,Delivered',
+            'state' => 'nullable|string',
+            'completed_actions' => 'nullable|string',
             'initial_observation' => 'nullable|string',
             'assigned_to' => 'nullable|string',
             'assigned_phone' => 'nullable|string',
@@ -112,6 +147,10 @@ class RepairRequestController extends Controller
 
     public function update(Request $request, RepairRequest $repairRequest)
     {
+        if (!$this->isRepairAdmin(auth()->user())) {
+            abort(403, 'Unauthorized.');
+        }
+
         $validated = $request->validate([
             'job_id' => 'nullable|string|max:50',
             'date_received' => 'nullable|date',
@@ -121,6 +160,8 @@ class RepairRequestController extends Controller
             'assigned_to' => 'nullable|string|max:100',
             'assigned_phone' => 'nullable|string|max:50',
             'status' => 'required|in:Pending,In Progress,Completed,Delivered',
+            'state' => 'nullable|string',
+            'completed_actions' => 'nullable|string',
         ]);
 
         $repairRequest->update($validated);
@@ -137,5 +178,10 @@ class RepairRequestController extends Controller
     }
 
 
+    private function isRepairAdmin($user)
+    {
+        $adminIds = ['25052', '21023', '25030', '24079', '25048'];
+        return in_array($user->employee_id, $adminIds);
+    }
 }
 

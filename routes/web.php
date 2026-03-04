@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AttendanceMatrixController;
 use App\Http\Controllers\DailyAttendanceController;
+use App\Http\Controllers\DeptHeadController;
 use App\Http\Controllers\DutyRosterController;
 use App\Http\Controllers\IssueVoucherController;
 use App\Http\Controllers\LeaveController;
@@ -25,6 +26,7 @@ use App\Http\Controllers\WorklogController;
 use App\Http\Controllers\RepairRequestController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\UserAssignmentController;
+use App\Http\Controllers\HRController;
 
 Route::get('/', function () {
     return Inertia::render('welcome');
@@ -252,6 +254,13 @@ Route::middleware(['auth'])->group(function () {
 });
 
 Route::middleware(['auth'])->group(function () {
+    Route::get('/dept-heads', [DeptHeadController::class, 'index'])->name('dept-heads.index');
+    Route::post('/dept-heads', [DeptHeadController::class, 'store'])->name('dept-heads.store');
+    Route::put('/dept-heads/{deptHead}', [DeptHeadController::class, 'update'])->name('dept-heads.update');
+    Route::delete('/dept-heads/{deptHead}', [DeptHeadController::class, 'destroy'])->name('dept-heads.destroy');
+});
+
+Route::middleware(['auth'])->group(function () {
     Route::get('/dept-head/attendance', [DeptHeadAttendanceController::class, 'index'])
         ->name('depthead.attendance');
     //    Route::get('/dept-head/employee/{employeeId}/monthly', [DeptHeadAttendanceController::class, 'employeeMonthly'])
@@ -370,6 +379,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::post('/registrar/leave-requests/bulk-update', [RegistrarLeaveController::class, 'bulkUpdate'])
         ->name('registrar.leave.bulk-update');
+    Route::get('/registrar/all-leaves', [RegistrarLeaveController::class, 'allLeaves'])
+        ->name('registrar.leave.all');
+
+    Route::get('/registrar/leaves/department/{deptId}/employees', [RegistrarLeaveController::class, 'departmentEmployees'])
+        ->name('registrar.leave.department.employees');
 });
 
 // VC Leave Approval Panel (for senior officers like Registrar, Treasurer, Exam Controller)
@@ -413,6 +427,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/repair-requests/{repairRequest}/status', [RepairRequestController::class, 'updateStatus'])->name('repair.updateStatus');
     Route::get('/repair-requests/{repairRequest}/edit', [RepairRequestController::class, 'edit'])->name('repair.edit');
     Route::put('/repair-requests/{repairRequest}', [RepairRequestController::class, 'update'])->name('repair.update');
+    Route::get('/repair-requests/{repairRequest}/download', [RepairRequestController::class, 'downloadPdf'])->name('repair.download');
     Route::get('/repair/{id}/view', [RepairRequestController::class, 'view'])->name('repair.view');
 });
 
@@ -522,6 +537,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/manual-attendance', [\App\Http\Controllers\ManualAttendanceController::class, 'index'])->name('attendance.manual.index');
     Route::get('/manual-attendance/search', [\App\Http\Controllers\ManualAttendanceController::class, 'search'])->name('attendance.manual.search');
     Route::post('/manual-attendance/store', [\App\Http\Controllers\ManualAttendanceController::class, 'store'])->name('attendance.manual.store');
+});
+
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/hr/employees', [HRController::class, 'employeeList'])->name('hr.employees');
 });
 
 require __DIR__ . '/settings.php';

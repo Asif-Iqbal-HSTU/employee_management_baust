@@ -106,6 +106,13 @@ class StoreIssueController extends Controller
 
     public function storeman_issue(Request $request, IssueVoucher $voucher)
     {
+        // 🛡️ Guard: Quick pre-check (before heavy validation)
+        if ($voucher->issued_by_storeman === 'Yes') {
+            return back()->withErrors([
+                'issued_quantity' => 'This voucher has already been issued.',
+            ]);
+        }
+
         $request->validate([
             'sl_no' => 'required|string',
             'book_no' => 'required|string',
@@ -115,15 +122,6 @@ class StoreIssueController extends Controller
             'budget_code' => 'nullable|string',
         ]);
 
-        $product = StoreProduct::findOrFail($voucher->store_product_id);
-
-        // ❌ Prevent issuing more than stock
-        if ($request->issued_quantity > $product->stock_unit_number) {
-            return back()->withErrors([
-                'issued_quantity' => 'Insufficient stock available.',
-            ]);
-        }
-
         // ❌ Prevent issuing more than requested
         if ($request->issued_quantity > $voucher->requisitioned_quantity) {
             return back()->withErrors([
@@ -131,13 +129,26 @@ class StoreIssueController extends Controller
             ]);
         }
 
-        // ❌ Require comment if issuing less than requested
-        // ❌ Require comment check removed for partial issues as requested.
+        $result = DB::transaction(function () use ($request, $voucher) {
 
-        DB::transaction(function () use ($request, $voucher, $product) {
+            // 🔒 Lock the voucher row to prevent concurrent processing
+            $lockedVoucher = IssueVoucher::lockForUpdate()->find($voucher->id);
+
+            // 🛡️ Re-check after acquiring lock (another request may have issued it)
+            if ($lockedVoucher->issued_by_storeman === 'Yes') {
+                return 'already_issued';
+            }
+
+            // 🔒 Lock the product row for safe stock update
+            $product = StoreProduct::lockForUpdate()->findOrFail($lockedVoucher->store_product_id);
+
+            // ❌ Prevent issuing more than stock
+            if ($request->issued_quantity > $product->stock_unit_number) {
+                return 'insufficient_stock';
+            }
 
             // 1️⃣ Update Issue Voucher
-            $voucher->update([
+            $lockedVoucher->update([
                 'sl_no' => $request->sl_no,
                 'book_no' => $request->book_no,
                 'receiver' => $request->receiver,
@@ -147,18 +158,34 @@ class StoreIssueController extends Controller
                 'issued_by_storeman' => 'Yes',
             ]);
 
-            // 2️⃣ Create Store Issue Record
-            StoreIssue::create([
-                'store_product_id' => $voucher->store_product_id,
-                'issue_voucher_id' => $voucher->id,
-                'date_of_issue' => now()->toDateString(),
-                'issued_quantity' => $request->issued_quantity,
-                'budget_code' => $request->budget_code,
-            ]);
+            // 2️⃣ Create Store Issue Record (updateOrCreate to prevent duplicates)
+            StoreIssue::updateOrCreate(
+                ['issue_voucher_id' => $lockedVoucher->id],
+                [
+                    'store_product_id' => $lockedVoucher->store_product_id,
+                    'date_of_issue' => now()->toDateString(),
+                    'issued_quantity' => $request->issued_quantity,
+                    'budget_code' => $request->budget_code,
+                ]
+            );
 
-            // 3️⃣ Reduce Stock
+            // 3️⃣ Reduce Stock (exactly once, exactly by issued_quantity)
             $product->decrement('stock_unit_number', $request->issued_quantity);
+
+            return 'success';
         });
+
+        if ($result === 'already_issued') {
+            return back()->withErrors([
+                'issued_quantity' => 'This voucher has already been issued.',
+            ]);
+        }
+
+        if ($result === 'insufficient_stock') {
+            return back()->withErrors([
+                'issued_quantity' => 'Insufficient stock available.',
+            ]);
+        }
 
         return back()->with('success', 'Item issued successfully.');
     }

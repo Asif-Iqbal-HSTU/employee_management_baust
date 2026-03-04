@@ -64,27 +64,27 @@ class IssueVoucherController extends Controller
         $user = Auth::user();
 
         // 1️⃣ Verify user is a department head
-        $deptHead = DB::table('dept_heads')
+        $deptHeads = DB::table('dept_heads')
             ->join('departments', 'dept_heads.department_id', '=', 'departments.id')
             ->where('dept_heads.employee_id', $user->employee_id)
             ->select('dept_heads.*', 'departments.dept_name')
-            ->first();
+            ->get();
 
-        if (!$deptHead) {
+        if ($deptHeads->isEmpty()) {
             abort(403, 'You are not a department head');
         }
 
-        $departmentId = $deptHead->department_id;
-        $departmentName = $deptHead->dept_name;
+        $departmentIds = $deptHeads->pluck('department_id')->toArray();
+        $departmentName = $deptHeads->pluck('dept_name')->join(', ');
 
-        // 2️⃣ Get vouchers belonging to that department
-        $pending = IssueVoucher::where('department_id', $departmentId)
+        // 2️⃣ Get vouchers belonging to those departments
+        $pending = IssueVoucher::whereIn('department_id', $departmentIds)
             ->where('allowed_by_head', 'No')
             ->with(['product', 'requisitionedBy.assignment.designation'])
             ->orderBy('date', 'desc')
             ->get();
 
-        $allowed = IssueVoucher::where('department_id', $departmentId)
+        $allowed = IssueVoucher::whereIn('department_id', $departmentIds)
             ->whereIn('allowed_by_head', ['Yes', 'Denied'])
             ->with(['product', 'requisitionedBy.assignment.designation'])
             ->orderBy('date', 'desc')
@@ -92,7 +92,7 @@ class IssueVoucherController extends Controller
 
         return inertia('DeptHead/VoucherAllow', [
             'department' => [
-                'id' => $departmentId,
+                'id' => $departmentIds[0],
                 'name' => $departmentName,
             ],
             'pending' => $pending,
@@ -139,20 +139,18 @@ class IssueVoucherController extends Controller
 
         $user = Auth::user();
 
-        // 2. Determine the department ID of the current head
-        $deptHead = DB::table('dept_heads')
+        // 2. Determine the department IDs of the current head
+        $deptHeadIds = DB::table('dept_heads')
             ->where('employee_id', $user->employee_id)
-            ->first();
+            ->pluck('department_id')
+            ->toArray();
 
-        if (!$deptHead) {
-            // Should be caught earlier, but good to have a check
+        if (empty($deptHeadIds)) {
             return back()->with('error', 'Authentication error: Not a department head.');
         }
 
-        $departmentId = $deptHead->department_id;
-
         // 3. Perform the bulk update
-        $updatedCount = IssueVoucher::where('department_id', $departmentId)
+        $updatedCount = IssueVoucher::whereIn('department_id', $deptHeadIds)
             ->where('requisition_employee_id', $employeeId)
             ->where('date', $date)
             ->where('allowed_by_head', 'No') // Only update pending vouchers

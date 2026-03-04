@@ -17,17 +17,17 @@ class DutyRosterController extends Controller
     {
         $user = Auth::user();
         $isAdmin = $user->employee_id === '25052';
-        $deptHead = DB::table('dept_heads')->where('employee_id', $user->employee_id)->first();
+        $deptHeadIds = DB::table('dept_heads')->where('employee_id', $user->employee_id)->pluck('department_id')->toArray();
 
-        if (!$isAdmin && !$deptHead) {
+        if (!$isAdmin && empty($deptHeadIds)) {
             abort(403, 'Unauthorized access.');
         }
 
         $query = User::query()->with('assignment.department');
 
         if (!$isAdmin) {
-            $query->whereHas('assignment', function ($q) use ($deptHead) {
-                $q->where('department_id', $deptHead->department_id);
+            $query->whereHas('assignment', function ($q) use ($deptHeadIds) {
+                $q->whereIn('department_id', $deptHeadIds);
             });
         }
 
@@ -44,9 +44,9 @@ class DutyRosterController extends Controller
                 $q->select('employee_id', 'name');
             }
         ])
-            ->when(!$isAdmin, function ($q) use ($deptHead) {
-                $q->whereHas('user.assignment', function ($sq) use ($deptHead) {
-                    $sq->where('department_id', $deptHead->department_id);
+            ->when(!$isAdmin, function ($q) use ($deptHeadIds) {
+                $q->whereHas('user.assignment', function ($sq) use ($deptHeadIds) {
+                    $sq->whereIn('department_id', $deptHeadIds);
                 });
             })
             ->orderBy('date', 'desc')
@@ -183,17 +183,17 @@ class DutyRosterController extends Controller
     {
         $user = Auth::user();
         $isAdmin = $user->employee_id === '25052';
-        $deptHead = DB::table('dept_heads')->where('employee_id', $user->employee_id)->first();
+        $deptHeadIds = DB::table('dept_heads')->where('employee_id', $user->employee_id)->pluck('department_id')->toArray();
 
-        if (!$isAdmin && !$deptHead) {
+        if (!$isAdmin && empty($deptHeadIds)) {
             abort(403, 'Unauthorized access.');
         }
 
         $query = User::query()->with('assignment.department');
 
         if (!$isAdmin) {
-            $query->whereHas('assignment', function ($q) use ($deptHead) {
-                $q->where('department_id', $deptHead->department_id);
+            $query->whereHas('assignment', function ($q) use ($deptHeadIds) {
+                $q->whereIn('department_id', $deptHeadIds);
             });
         }
 
@@ -211,9 +211,9 @@ class DutyRosterController extends Controller
                 $q->select('employee_id', 'name');
             }
         ])
-            ->when(!$isAdmin, function ($q) use ($deptHead) {
-                $q->whereHas('user.assignment', function ($sq) use ($deptHead) {
-                    $sq->where('department_id', $deptHead->department_id);
+            ->when(!$isAdmin, function ($q) use ($deptHeadIds) {
+                $q->whereHas('user.assignment', function ($sq) use ($deptHeadIds) {
+                    $sq->whereIn('department_id', $deptHeadIds);
                 });
             })
             ->whereDate('date', '>=', Carbon::today())
@@ -284,11 +284,11 @@ class DutyRosterController extends Controller
         
         // If not created by user and not admin, check dept head status
         if ($roster->created_by != $user->employee_id && !$isAdmin) {
-             $deptHead = DB::table('dept_heads')->where('employee_id', $user->employee_id)->first();
-             if ($deptHead) {
+             $deptHeadIds = DB::table('dept_heads')->where('employee_id', $user->employee_id)->pluck('department_id')->toArray();
+             if (!empty($deptHeadIds)) {
                  // Check if the roster belongs to an employee in this dept
                  $rosterUser = User::with('assignment')->where('employee_id', $roster->employee_id)->first();
-                 if (!$rosterUser || !$rosterUser->assignment || $rosterUser->assignment->department_id != $deptHead->department_id) {
+                 if (!$rosterUser || !$rosterUser->assignment || !in_array($rosterUser->assignment->department_id, $deptHeadIds)) {
                      abort(403, 'Unauthorized action.');
                  }
              } else {

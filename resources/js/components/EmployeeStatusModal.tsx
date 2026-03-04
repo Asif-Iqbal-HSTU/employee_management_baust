@@ -1,7 +1,14 @@
 import { useState, useEffect } from "react";
 import { router } from "@inertiajs/react";
 
-export default function EmployeeStatusModal({ employee, isOpen, onClose, date }) {
+interface Props {
+    employee: any;
+    isOpen: boolean;
+    onClose: () => void;
+    date: string;
+}
+
+export default function EmployeeStatusModal({ employee, isOpen, onClose, date }: Props) {
     const [status, setStatus] = useState("late entry");
     const [remarks, setRemarks] = useState("");
     const [loading, setLoading] = useState(false);

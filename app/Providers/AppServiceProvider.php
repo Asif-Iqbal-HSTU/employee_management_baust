@@ -61,13 +61,14 @@ class AppServiceProvider extends ServiceProvider
                 // 🧑‍💼 Department Head pending
                 $headPending = 0;
 
-                $deptHead = DB::table('dept_heads')
+                $deptHeadIds = DB::table('dept_heads')
                     ->where('employee_id', $user->employee_id)
-                    ->first();
+                    ->pluck('department_id')
+                    ->toArray();
 
-                if ($deptHead) {
+                if (!empty($deptHeadIds)) {
                     $headPending = Leave::join('user_assignments', 'user_assignments.employee_id', '=', 'leaves.employee_id')
-                        ->where('user_assignments.department_id', $deptHead->department_id)
+                        ->whereIn('user_assignments.department_id', $deptHeadIds)
                         ->where('leaves.status', 'Requested to head')
                         ->count();
                 }
@@ -95,12 +96,13 @@ class AppServiceProvider extends ServiceProvider
                 }
 
                 $headVoucherPending = 0;
-                $deptHead = DB::table('dept_heads')
+                $deptHeadIds = DB::table('dept_heads')
                     ->where('employee_id', $user->employee_id)
-                    ->first();
+                    ->pluck('department_id')
+                    ->toArray();
 
-                if ($deptHead) {
-                    $headVoucherPending = IssueVoucher::where('department_id', $deptHead->department_id)
+                if (!empty($deptHeadIds)) {
+                    $headVoucherPending = IssueVoucher::whereIn('department_id', $deptHeadIds)
                         ->where('allowed_by_head', 'No')
                         ->count();
                 }

@@ -59,7 +59,12 @@ class User extends Authenticatable
 
     public function headedDepartment()
     {
-        return $this->hasOne(DeptHead::class, 'employee_id', 'employee_id');
+        return $this->hasMany(DeptHead::class, 'employee_id', 'employee_id');
+    }
+
+    public function headedDepartments()
+    {
+        return $this->hasMany(DeptHead::class, 'employee_id', 'employee_id');
     }
 
     public function worklogs()
@@ -80,6 +85,11 @@ class User extends Authenticatable
     public function leave()
     {
         return $this->hasMany(Leave::class, 'employee_id', 'employee_id');
+    }
+
+    public function employeeDetail()
+    {
+        return $this->hasOne(EmployeeDetail::class, 'employee_id', 'employee_id');
     }
 
 
