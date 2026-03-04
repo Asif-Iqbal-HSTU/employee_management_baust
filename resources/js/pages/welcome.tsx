@@ -15,6 +15,8 @@ export default function Welcome({ auth }) {
                         className="mx-auto w-28 h-28 mb-4"
                     />
 
+                    {/* Ay Hay */}
+
                     {/* Title */}
                     <h1 className="text-3xl md:text-4xl font-bold text-gray-800 dark:text-white">
                         BAUST Management System
